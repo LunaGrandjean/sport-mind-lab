@@ -71,7 +71,7 @@ export function AppSidebar() {
           <div className="flex items-center gap-3">
             <span className="grid h-12 w-12 place-items-center rounded-xl bg-cyan-50 shadow-inner ring-1 ring-cyan-100">
               <img
-                src="/logo.jpeg"
+                src="/logo.png"
                 alt="Logo du cabinet"
                 className="h-10 w-10 object-contain"
               />
