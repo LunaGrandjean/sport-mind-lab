@@ -1,4 +1,4 @@
-// Domaine métier — types, axes du radar et helpers.
+// Domaine métier : types, axes du radar et helpers.
 // Aucune dépendance UI ici : facile à brancher sur une vraie persistance.
 
 export const AXES = [
@@ -48,11 +48,11 @@ export interface Result {
   id: string;
   athleteId: string;
   axis: Axis;
-  score: number; // 0 - 100
+  score: number;
   mode: string;
   niveau: string;
   commentaire?: string;
-  date: string; // ISO
+  date: string;
   source: "test" | "manuel";
 }
 

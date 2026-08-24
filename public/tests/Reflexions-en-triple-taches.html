@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Réflexion en triple tâches</title>
+  <style>
+    body{font-family:Arial,sans-serif;background:#f4f6f9;margin:0;padding:0;color:#222}
+    .page{display:none;min-height:100vh;padding:30px;box-sizing:border-box}
+    .active{display:flex;flex-direction:column;justify-content:center;align-items:center}
+    .card{background:#fff;padding:30px;border-radius:20px;box-shadow:0 8px 25px rgba(0,0,0,.12);width:min(900px,95%)}
+    h1,h2{text-align:center}
+    .split{display:grid;grid-template-columns:1fr 1fr;gap:30px;width:100%;height:100%}
+    .zone{background:#fff;border-radius:20px;padding:20px;display:flex;justify-content:center;align-items:center;min-height:70vh}
+    .operation{font-size:2.5rem;line-height:1.8;text-align:right;font-family:monospace}
+    .stroop{font-size:4rem;font-weight:bold}
+    .blink{visibility:hidden}
+    input,select,button{padding:10px;font-size:1rem;margin:10px}
+    .success{color:green;font-weight:bold}
+    .error{color:red;font-weight:bold}
+    label{display:block;margin:8px 0}
+  </style>
+</head>
+<body>
+
+<div id="page1" class="page active">
+  <div class="card">
+    <h1>Réflexion en triple tâches</h1>
+    <h2>Paramétrage</h2>
+    <label>Type d'opération :</label>
+    <select id="operationType">
+      <option>Addition</option>
+      <option>Soustraction</option>
+      <option>Addition et soustraction</option>
+      <option>Division</option>
+      <option>Multiplication</option>
+      <option>Division et multiplication</option>
+      <option>Addition, soustraction, division et multiplication</option>
+    </select>
+    <label>Niveau :</label>
+    <input type="number" id="level" min="1" max="40" value="1" />
+    <button onclick="startGame()">Démarrer</button>
+  </div>
+</div>
+
+<div id="page2" class="page">
+  <div class="card">
+    <h2 id="countdown">5</h2>
+    <div id="gameArea" style="display:none" class="split">
+      <div class="zone"><div id="operation" class="operation"></div></div>
+      <div class="zone"><div id="stroop" class="stroop"></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="page3" class="page">
+  <div class="card">
+    <h2>Réponses</h2>
+    <label>Résultat de l'opération :</label>
+    <input id="mathAnswer" type="text" />
+    <label>Mot en position correspondant au chiffre clignoté :</label>
+    <input id="stroopAnswer" type="text" />
+    <button onclick="validateAnswers()">Valider</button>
+  </div>
+</div>
+
+<div id="page4" class="page">
+  <div class="card" id="results"></div>
+</div>
+
+<div id="page5" class="page">
+  <div class="card" id="report"></div>
+</div>
+
+<script>
+let currentLevel=1;
+let operationType='';
+let operationData={};
+let stroopSequence=[];
+let blinkDigit=1;
+let stopReason='arrêt volontaire';
+let score=1;
+
+const words=['ROUGE','BLEU','VERT','JAUNE','VIOLET','ORANGE','NOIR','ROSE'];
+const colors=['red','blue','green','gold','purple','orange','black','pink'];
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function generateOperation(level,type){
+  const ops=[];
+  const numbers=[];
+  const count=Math.min(2+Math.floor(level/10),5);
+
+  function randNum(){
+    if(level<=10) return Math.floor(Math.random()*20)+1;
+    if(level<=20) return Math.floor(Math.random()*100)+1;
+    if(level<=30) return Math.floor(Math.random()*500)-200;
+    return Math.floor(Math.random()*3000)-1500;
+  }
+
+  const typeMap={
+    'Addition':['+'],
+    'Soustraction':['-'],
+    'Addition et soustraction':['+','-'],
+    'Division':['/'],
+    'Multiplication':['*'],
+    'Division et multiplication':['/','*'],
+    'Addition, soustraction, division et multiplication':['+','-','/','*']
+  };
+
+  let runningValue = null;
+  for(let i=0;i<count;i++){
+    if(i===0){
+      const firstNum = randNum();
+      numbers.push(firstNum);
+      runningValue = firstNum;
+    } else {
+      const previousOp = ops[i-1];
+
+      // Si l'opération précédente est une division,
+      // on choisit un diviseur exact du résultat courant
+      // pour garantir qu'aucun résultat intermédiaire ne soit décimal.
+      if(previousOp === '/'){
+        const base = Math.abs(runningValue);
+        const divisors = [];
+        for(let d=1; d<=Math.max(base,1); d++){
+          if(base % d === 0) divisors.push(d);
+        }
+        const chosen = divisors[Math.floor(Math.random()*divisors.length)] || 1;
+        numbers.push(chosen);
+        runningValue = runningValue / chosen;
+      } else {
+        const nextNum = randNum();
+        numbers.push(nextNum);
+        if(previousOp === '+') runningValue += nextNum;
+        if(previousOp === '-') runningValue -= nextNum;
+        if(previousOp === '*') runningValue *= nextNum;
+      }
+    }
+
+    if(i<count-1){
+      ops.push(typeMap[type][Math.floor(Math.random()*typeMap[type].length)]);
+    }
+  }
+
+  let expr=''+numbers[0];
+  for(let i=0;i<ops.length;i++) expr+=ops[i]+numbers[i+1];
+
+  let result;
+  try{ result=Math.round(Function('return '+expr)()); }
+  catch{ result=0; }
+
+  return {numbers,ops,expr,result};
+}
+
+function renderOperation(data){
+  let html='';
+  data.numbers.forEach((n,i)=>{
+    if(i===0) html += `<div>${n}</div>`;
+    else html += `<div>${data.ops[i-1]} ${n}</div>`;
+  });
+  document.getElementById('operation').innerHTML=html;
+}
+
+function startGame(){
+  currentLevel=parseInt(document.getElementById('level').value);
+  operationType=document.getElementById('operationType').value;
+  showPage('page2');
+  let count=5;
+  document.getElementById('countdown').style.display='block';
+  document.getElementById('gameArea').style.display='none';
+  const interval=setInterval(()=>{
+    document.getElementById('countdown').textContent=count;
+    count--;
+    if(count<0){
+      clearInterval(interval);
+      launchGame();
+    }
+  },1000);
+}
+
+function launchGame(){
+  document.getElementById('countdown').style.display='none';
+
+  // Passage automatique en plein écran au lancement du jeu
+  if (document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen().catch(()=>{});
+  }
+  document.getElementById('gameArea').style.display='grid';
+
+  operationData=generateOperation(currentLevel,operationType);
+  renderOperation(operationData);
+
+  const flatNumbers=operationData.numbers.join('');
+  blinkDigit=parseInt(flatNumbers[Math.floor(Math.random()*flatNumbers.length)]);
+
+  setTimeout(()=>blinkRandomDigit(),1000+Math.random()*1000);
+
+  // Le Stroop démarre au minimum après 2 secondes
+  setTimeout(()=>runStroop(),2000);
+
+  setTimeout(()=>showPage('page3'),20000);
+}
+
+function blinkRandomDigit(){
+  const op=document.getElementById('operation');
+  let html=op.innerHTML;
+  let regex=new RegExp(blinkDigit,'g');
+  let visible=true;
+  let count=0;
+  const interval=setInterval(()=>{
+    op.innerHTML=visible ? html.replace(regex,'<span class="blink">'+blinkDigit+'</span>') : html;
+    visible=!visible;
+    count++;
+    if(count>=6){
+      clearInterval(interval);
+      op.innerHTML=html;
+    }
+  },300);
+}
+
+function runStroop(){
+  stroopSequence=[];
+  const total=10;
+  const duration=currentLevel<=19?2000:(currentLevel<=30?1000:500);
+  let index=0;
+
+  function next(){
+    if(index>=total){
+      document.getElementById('stroop').textContent='';
+      return;
+    }
+    const word=words[Math.floor(Math.random()*words.length)];
+    const color=colors[Math.floor(Math.random()*colors.length)];
+    stroopSequence.push(word.toLowerCase());
+    const s=document.getElementById('stroop');
+    s.textContent=word;
+    s.style.color=color;
+    index++;
+    setTimeout(()=>{ s.textContent=''; setTimeout(next,200); },duration);
+  }
+  next();
+}
+
+function validateAnswers(){
+  const math=document.getElementById('mathAnswer').value.trim();
+  const stroop=document.getElementById('stroopAnswer').value.trim().toLowerCase();
+  const expectedStroop=stroopSequence[blinkDigit-1] || 'aucun';
+
+  let mathOk=(parseInt(math)===operationData.result);
+  let stroopOk=(stroop===expectedStroop);
+
+  if(!mathOk) stopReason='erreur mathématique';
+  else if(!stroopOk) stopReason='erreur mémoire stroop';
+  else stopReason='arrêt volontaire';
+  if(mathOk && stroopOk) {
+    score=currentLevel;
+    currentLevel++;
+  }
+
+  document.getElementById('results').innerHTML=`
+    <h2>Résultats</h2>
+    <p class="${mathOk?'success':'error'}">Mathématiques : ${mathOk?'Correct':'Faux — Correction : '+operationData.result}</p>
+    <p class="${stroopOk?'success':'error'}">Stroop : ${stroopOk?'Correct':'Faux — Correction : '+expectedStroop}</p>
+    <button onclick="nextLevel()">Poursuivre au niveau suivant</button>
+    <button onclick="retryLevel()">Refaire au même niveau</button>
+    <button onclick="showReport()">Bilan</button>
+  `;
+  showPage('page4');
+}
+
+function nextLevel(){
+  document.getElementById('level').value=currentLevel;
+  startGame();
+}
+
+function retryLevel(){
+  startGame();
+}
+
+function showReport(){
+  document.getElementById('report').innerHTML=`
+    <h2>Bilan</h2>
+    <p>Niveau atteint : ${score}</p>
+    <p>Raison d'arrêt : ${stopReason}</p>
+    <button onclick="showPage('page1')">Revenir au menu principal</button>
+  `;
+  showPage('page5');
+}
+</script>
+</body>
+</html>
+

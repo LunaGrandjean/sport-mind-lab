@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dés à points – Menu discret</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background-color: #d2a679; /* marron clair chaleureux */
+  overflow: hidden;
+}
+
+/* Barre de contrôle */
+.toolbar {
+  position: fixed;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,0.9);
+  padding: 12px 20px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  z-index: 1000;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.5s ease;
+}
+
+.toolbar.small {
+  transform: translateX(-50%) scale(0.7);
+  opacity: 0.4;
+}
+
+.toolbar label { margin-right: 5px; }
+
+.toolbar input[type="number"] {
+  width: 50px;
+  padding: 4px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.toolbar button {
+  padding: 6px 12px;
+  font-size: 13px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #2563eb;
+  color: white;
+}
+
+.toolbar button.secondary {
+  background: #6b7280;
+}
+
+/* Zone de jeu */
+#scene {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Dés */
+.die {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  box-shadow:
+    inset -6px -6px 12px rgba(0,0,0,0.25),
+    inset 6px 6px 12px rgba(255,255,255,0.35),
+    0 18px 36px rgba(0,0,0,0.25);
+  animation: fall 0.9s cubic-bezier(.2,.8,.3,1) forwards;
+}
+
+@keyframes fall {
+  0%   { transform: translateY(-400px) scale(0.8); }
+  70%  { transform: translateY(0) scale(1.05); }
+  85%  { transform: translateY(-20px) scale(0.98); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* Points centrés */
+.dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  position: absolute;
+}
+</style>
+</head>
+
+<body>
+
+<div class="toolbar" id="toolbar">
+  <label>Dés</label>
+  <input type="number" id="count" value="6" min="1" max="30">
+
+  <label>Couleurs :</label>
+  <span id="colorsCheckboxes"></span>
+
+  <button onclick="rollDice()">Lancer</button>
+  <button class="secondary" onclick="toggleFullscreen()">Plein écran</button>
+</div>
+
+<div id="scene"></div>
+
+<script>
+const DIE_SIZE = 120;
+
+// Points centrés D6
+const DOTS = {
+  1: [[0.5,0.5]],
+  2: [[0.3,0.5],[0.7,0.5]],
+  3: [[0.3,0.5],[0.5,0.5],[0.7,0.5]],
+  4: [[0.25,0.5],[0.75,0.5],[0.25,0.5],[0.75,0.5]],
+  5: [[0.25,0.5],[0.75,0.5],[0.5,0.5],[0.25,0.5],[0.75,0.5]],
+  6: [[0.25,0.3],[0.75,0.3],[0.25,0.5],[0.75,0.5],[0.25,0.7],[0.75,0.7]]
+};
+
+// Palette par défaut + blanc et noir
+const DEFAULT_COLORS = [
+  {name:'Rouge', hex:'#ef4444'},
+  {name:'Bleu', hex:'#3b82f6'},
+  {name:'Vert', hex:'#22c55e'},
+  {name:'Orange', hex:'#f59e0b'},
+  {name:'Violet', hex:'#a855f7'},
+  {name:'Turquoise', hex:'#14b8a6'},
+  {name:'Jaune', hex:'#eab308'},
+  {name:'Blanc', hex:'#ffffff'},
+  {name:'Noir', hex:'#000000'}
+];
+
+// Génération des cases à cocher
+const container = document.getElementById('colorsCheckboxes');
+DEFAULT_COLORS.forEach((c,i)=>{
+  const label = document.createElement('label');
+  label.style.marginRight='5px';
+  const input=document.createElement('input');
+  input.type='checkbox';
+  input.value=c.hex;
+  input.checked=true;
+  input.id='color'+i;
+  label.appendChild(input);
+  label.appendChild(document.createTextNode(' '+c.name));
+  container.appendChild(label);
+});
+
+// Mélange Fisher-Yates
+function shuffle(array){
+  for(let i=array.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [array[i],array[j]]=[array[j],array[i]];
+  }
+}
+
+// Lancer les dés
+function rollDice(){
+  const toolbar=document.getElementById('toolbar');
+  toolbar.classList.add('small'); // rendre le menu petit et transparent
+
+  const scene=document.getElementById('scene');
+  scene.innerHTML='';
+
+  const count=parseInt(document.getElementById('count').value);
+  const colors=Array.from(document.querySelectorAll('#colorsCheckboxes input:checked')).map(c=>c.value);
+  if(colors.length===0){alert('Choisissez au moins une couleur!'); return;}
+
+  // Ajuster grille pour plein écran
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const cols = Math.floor(width / DIE_SIZE);
+  const rows = Math.floor(height / DIE_SIZE);
+
+  let positions=[];
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      positions.push({x:c*DIE_SIZE, y:r*DIE_SIZE});
+    }
+  }
+  shuffle(positions);
+
+  for(let i=0;i<count && i<positions.length;i++){
+    const die=document.createElement('div');
+    die.className='die';
+
+    const color=colors[Math.floor(Math.random()*colors.length)];
+    die.style.background=color;
+
+    die.style.left=positions[i].x+'px';
+    die.style.top=positions[i].y+'px';
+
+    const value=Math.floor(Math.random()*6)+1;
+    DOTS[value].forEach(p=>{
+      const dot=document.createElement('div');
+      dot.className='dot';
+      dot.style.background = (color === '#000000') ? '#ffffff' : '#000000';
+      dot.style.left=`${p[0]*DIE_SIZE - 9}px`;
+      dot.style.top=`${p[1]*DIE_SIZE - 9}px`;
+      die.appendChild(dot);
+    });
+
+    scene.appendChild(die);
+  }
+}
+
+// Plein écran ajusté
+function toggleFullscreen(){
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen().then(()=>{
+      rollDice(); // recalcul des dés
+    });
+  } else{
+    document.exitFullscreen();
+  }
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Test Neuro-Cognitif – Cabinet</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+body {
+    margin: 0;
+    background: black;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+}
+
+input, button, select {
+    font-size: 20px;
+    padding: 8px;
+    margin: 6px;
+}
+
+.zone {
+    height: 40vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.stimulus {
+    width: 160px;
+    height: 160px;
+    border: 18px solid white;
+    visibility: hidden;
+}
+
+.circle { border-radius: 50%; border-top-color: transparent; }
+.square {}
+.triangle {
+    width: 0;
+    height: 0;
+    border-left: 80px solid transparent;
+    border-right: 80px solid transparent;
+    border-bottom: 160px solid white;
+}
+
+.controls { margin-top: 10px; }
+
+#countdown {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 140px;
+    display: none;
+    z-index: 9000;
+}
+
+#error {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 260px;
+    color: red;
+    z-index: 9999;
+}
+
+#report {
+    display: none;
+    margin-top: 30px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ===== PAGE 1 ===== -->
+<div id="setup">
+    <h2>Test de discrimination visuelle</h2>
+    <input id="prenom" placeholder="Prénom"><br>
+    <input id="nom" placeholder="Nom"><br>
+    <input id="age" placeholder="Âge"><br>
+
+    <select id="mode">
+        <option value="classic">Mode cercles</option>
+        <option value="advanced">Formes & couleurs</option>
+    </select><br>
+
+    <button onclick="startTest(true)">Démarrer</button><br>
+    <button onclick="goFullscreen()">Mode plein écran</button>
+    <p style="opacity:0.7">X = Match | N = No Match</p>
+</div>
+
+<div id="countdown"></div>
+
+<!-- ===== TEST ===== -->
+<div id="test" style="display:none">
+    <div class="zone"><div id="s1"></div></div>
+    <div class="zone"><div id="s2"></div></div>
+    <div class="controls">
+        <button onclick="respond(true)">MATCH</button>
+        <button onclick="respond(false)">NO MATCH</button>
+    </div>
+</div>
+
+<div id="error">✖</div>
+
+<!-- ===== COMPTE RENDU ===== -->
+<div id="report"></div>
+
+<script>
+const { jsPDF } = window.jspdf;
+
+/* === TEMPS PAR NIVEAU (71) === */
+const displayTimes = [
+1500,1300,1050,900,800,700,600,550,500,450,
+400,350,300,250,210,190,180,170,160,150,
+142,134,126,118,110,102,94,86,78,74,
+72,70,70,70,70,65,65,65,65,65,
+60,60,60,60,60,55,55,55,55,
+50,50,50,50,50,45,45,45,45,45,
+40,40,40,40,40,35,35,35,35,35,
+30,30
+];
+
+const shapes = ["circle","square","triangle"];
+const colors = ["white","red","blue","green","yellow"];
+
+let level=1, errors=0, isMatch=false, state="idle";
+let reactionTimes=[], falsePos=0, falseNeg=0, startResponse=0;
+let currentMode="classic";
+
+function displayTime(lvl){
+    return displayTimes[Math.min(lvl-1, displayTimes.length-1)];
+}
+
+function goFullscreen(){
+    document.documentElement.requestFullscreen?.();
+}
+
+function resetStats(){
+    level=1;
+    errors=0;
+    reactionTimes=[];
+    falsePos=0;
+    falseNeg=0;
+}
+
+function startTest(fromSetup){
+    if(fromSetup && (!prenom.value || !nom.value || !age.value)){
+        alert("Veuillez remplir tous les champs");
+        return;
+    }
+    goFullscreen();
+    currentMode = mode.value;
+    resetStats();
+    setup.style.display="none";
+    report.style.display="none";
+    countdownStart(3);
+}
+
+function countdownStart(n){
+    countdown.style.display="block";
+    countdown.innerText=n;
+    if(n===0){
+        countdown.style.display="none";
+        test.style.display="block";
+        showStimulus();
+        return;
+    }
+    setTimeout(()=>countdownStart(n-1),1000);
+}
+
+/* ===== STIMULI ===== */
+function createStimulus(el, forcedShape=null, forcedAngle=null){
+    el.style.visibility="visible";
+    el.className="stimulus";
+    el.style.border="";
+
+    const shape = forcedShape ?? shapes[Math.floor(Math.random()*shapes.length)];
+    const color = colors[Math.floor(Math.random()*colors.length)];
+    const angle = forcedAngle ?? Math.floor(Math.random()*360);
+
+    if(shape==="triangle"){
+        el.className="triangle";
+        el.style.borderBottomColor=color;
+    } else {
+        el.classList.add(shape);
+        el.style.border=`18px solid ${color}`;
+        el.style.borderTopColor="transparent";
+    }
+    el.style.transform=`rotate(${angle}deg)`;
+    return {shape, angle};
+}
+
+function showStimulus(){
+    state="stimulus";
+
+    if(currentMode==="advanced"){
+        const ref=createStimulus(s1);
+        isMatch=Math.random()<0.5;
+
+        if(isMatch){
+            createStimulus(s2, ref.shape, ref.angle);
+        } else {
+            if(Math.random()<0.5){
+                const other=shapes.filter(s=>s!==ref.shape);
+                createStimulus(s2, other[Math.floor(Math.random()*other.length)]);
+            } else {
+                let a;
+                do{ a=Math.floor(Math.random()*360); }while(a===ref.angle);
+                createStimulus(s2, ref.shape, a);
+            }
+        }
+    } else {
+        const r=Math.random()*360;
+        isMatch=Math.random()<0.5;
+        s1.className="stimulus circle";
+        s2.className="stimulus circle";
+        s1.style.border=s2.style.border="18px solid white";
+        s1.style.borderTopColor=s2.style.borderTopColor="transparent";
+        s1.style.transform=`rotate(${r}deg)`;
+        s2.style.transform=isMatch?`rotate(${r}deg)`:`rotate(${Math.random()*360}deg)`;
+        s1.style.visibility=s2.style.visibility="visible";
+    }
+
+    setTimeout(()=>{
+        s1.style.visibility="hidden";
+        s2.style.visibility="hidden";
+        state="response";
+        startResponse=performance.now();
+    }, displayTime(level));
+}
+
+function respond(choice){
+    if(state!=="response") return;
+    reactionTimes.push(performance.now()-startResponse);
+
+    if(choice!==isMatch){
+        isMatch? falseNeg++ : falsePos++;
+        errors++;
+        error.style.display="block";
+        setTimeout(()=>{
+            error.style.display="none";
+            errors>=2 ? endTest() : countdownStart(3);
+        },1200);
+        return;
+    }
+    level++;
+    showStimulus();
+}
+
+document.addEventListener("keydown",e=>{
+    if(state!=="response") return;
+    if(e.key.toLowerCase()==="x") respond(true);
+    if(e.key.toLowerCase()==="n") respond(false);
+});
+
+/* ===== FIN ===== */
+function endTest(){
+    test.style.display="none";
+    showReport();
+}
+
+function showReport(){
+    const avg=Math.round(reactionTimes.reduce((a,b)=>a+b,0)/reactionTimes.length);
+    report.style.display="block";
+    report.innerHTML=`
+    <h2>Compte rendu</h2>
+    <p><b>${prenom.value} ${nom.value}</b> – ${age.value} ans</p>
+    <p>Niveau atteint : ${level}</p>
+    <p>Temps d’apparition : ${displayTime(level)} ms</p>
+    <p>Temps de réponse moyen : ${avg} ms</p>
+    <p>Faux positifs : ${falsePos}</p>
+    <p>Faux négatifs : ${falseNeg}</p>
+    <hr>
+    <label><input type="checkbox" id="restart"> Recommencer</label><br>
+    <label><input type="radio" name="restartChoice" id="sameMode"> Même mode</label><br>
+    <label><input type="radio" name="restartChoice" id="changeClient"> Changer de mode / client</label><br><br>
+    <button onclick="generatePDF()">Télécharger le PDF</button>
+    <button onclick="handleRestart()">Valider</button>
+    `;
+}
+
+function handleRestart(){
+    if(!restart.checked) return;
+
+    report.style.display="none";
+
+    if(sameMode.checked){
+        resetStats();
+        countdownStart(3);
+    } else {
+        setup.style.display="block";
+    }
+}
+
+function generatePDF(){
+    const pdf=new jsPDF();
+    pdf.text("Compte rendu Test Neuro-Cognitif",20,20);
+    pdf.text(`Nom : ${nom.value}`,20,35);
+    pdf.text(`Prénom : ${prenom.value}`,20,45);
+    pdf.text(`Âge : ${age.value}`,20,55);
+    pdf.text(`Niveau atteint : ${level}`,20,70);
+    pdf.text(`Temps apparition : ${displayTime(level)} ms`,20,80);
+    pdf.text(`Temps de réponse moyen : ${Math.round(reactionTimes.reduce((a,b)=>a+b,0)/reactionTimes.length)} ms`,20,90);
+    pdf.text(`Faux positifs : ${falsePos}`,20,100);
+    pdf.text(`Faux négatifs : ${falseNeg}`,20,110);
+    const safeName = `${nom.value}_${prenom.value}`.replace(/[^a-z0-9_-]+/gi, "_");
+    pdf.save(`Resultat_captation_visuelle_${safeName || "joueur"}.pdf`);
+}
+</script>
+
+</body>
+</html>

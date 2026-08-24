@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NeuroCog Ballons</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  *{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#071426;color:#fff}
+  .page{display:none;min-height:100vh;padding:24px}.active{display:flex;justify-content:center;align-items:center}
+  .card{width:min(900px,95vw);background:#10233f;border-radius:20px;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+  h1,h2{text-align:center} label{display:block;margin:12px 0 6px}
+  input,select,button{width:100%;padding:14px;border-radius:10px;border:none;margin-bottom:10px}
+  button{cursor:pointer;background:#2f7cf6;color:white;font-weight:bold}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .check{display:flex;gap:10px;align-items:center;margin:8px 0}
+  .check input{width:auto}
+  #arena{position:relative;width:100%;height:calc(100vh - 70px);background:white;border-radius:0;overflow:hidden}
+  .ball{position:absolute;font-size:100px;user-select:none;will-change:transform;pointer-events:none}
+  .hud{display:flex;justify-content:space-between;margin-bottom:15px}
+  .center{text-align:center}.good{color:#7CFF79}.bad{color:#FF7070}
+</style>
+</head>
+<body>
+
+<section id="p1" class="page active">
+  <div class="card">
+    <h1>NeuroCog Ballons</h1>
+    <label>Nom</label><input id="nom">
+    <label>Prénom</label><input id="prenom">
+    <label>Âge</label><input id="age" type="number">
+
+    <label>Niveau de départ</label>
+    <select id="startLevel">
+      <option value="1">Niveau 1</option>
+      <option value="2">Niveau 2</option>
+      <option value="3">Niveau 3</option>
+      <option value="4">Niveau 4</option>
+      <option value="5">Niveau 5</option>
+      <option value="6">Niveau 6</option>
+      <option value="7">Niveau 7</option>
+      <option value="8">Niveau 8</option>
+      <option value="9">Niveau 9</option>
+      <option value="10">Niveau 10</option>
+      <option value="11">Niveau 11</option>
+      <option value="12">Niveau 12</option>
+      <option value="13">Niveau 13</option>
+      <option value="14">Niveau 14</option>
+      <option value="15">Niveau 15</option>
+      <option value="16">Niveau 16</option>
+      <option value="17">Niveau 17</option>
+      <option value="18">Niveau 18</option>
+      <option value="19">Niveau 19</option>
+      <option value="20">Niveau 20</option>
+    </select>
+
+    <label>Mode</label>
+    <select id="mode">
+      <option value="1">Mode 1 - Comptage variable</option>
+      <option value="2">Mode 2 - Rugby uniquement</option>
+    </select>
+
+    <label>Sens de défilement</label>
+    <select id="direction">
+      <option>gauche-droite</option>
+      <option>droite-gauche</option>
+      <option>mix-horizontal</option>
+      <option>haut-bas</option>
+      <option>bas-haut</option>
+      <option>mix-vertical</option>
+      <option>tous-sens</option>
+    </select>
+
+    <label>Ballons à afficher</label>
+    <div class="check"><input type="checkbox" id="rugby" checked>🏉 Rugby</div>
+    <div class="check"><input type="checkbox" id="football" checked>⚽ Football</div>
+    <div class="check"><input type="checkbox" id="american" checked>🏈 Football américain</div>
+
+    <button onclick="startSession()">DÉMARRER</button>
+  </div>
+</section>
+
+<section id="p2" class="page">
+  <div class="card" style="width:100vw;max-width:100vw;height:100vh;border-radius:0;padding:10px">
+    <div class="hud">
+      <div><b>Niveau :</b> <span id="levelBox"></span></div>
+      <div><b>Temps :</b> <span id="timerBox"></span>s</div>
+    </div>
+    <div id="countdown" class="center" style="font-size:120px"></div>
+    <div id="arena" style="display:none"></div>
+  </div>
+</section>
+
+<section id="p3" class="page">
+  <div class="card">
+    <h2 id="question"></h2>
+    <input id="answer" type="number" placeholder="Votre réponse">
+    <button onclick="validateAnswer()">VALIDER</button>
+  </div>
+</section>
+
+<section id="p4" class="page">
+  <div class="card center">
+    <h2 id="resultTitle"></h2>
+    <p id="resultDetail"></p>
+    <button onclick="restartSameLevel()">Continuer au même niveau</button>
+    <button onclick="nextLevel()">Poursuivre au niveau supérieur</button>
+    <button onclick="showPage('p5')">Arrêt (voir les résultats)</button>
+  </div>
+</section>
+
+<section id="p5" class="page">
+  <div class="card">
+    <h2>Résultats de la séance</h2>
+    <div id="summary"></div>
+    <button onclick="downloadPDF()">Télécharger le PDF</button>
+    <button onclick="resetApp()">Revenir au menu principal</button>
+  </div>
+</section>
+
+<script>
+const LEVELS = {
+  1:{speed:8000,varSpeed:false,max:10,curve:0,density:1,size:1},
+  2:{speed:7000,varSpeed:false,max:10,curve:0,density:1,size:1},
+  3:{speed:6000,varSpeed:false,max:10,curve:0.05,density:1,size:1},
+  4:{speed:5000,varSpeed:false,max:10,curve:0.08,density:1.1,size:1},
+  5:{speed:4000,varSpeed:false,max:10,curve:0.10,density:1.2,size:1},
+  6:{speed:3000,varSpeed:false,max:15,curve:0.12,density:1.3,size:1},
+  7:{speed:3000,varSpeed:true,max:15,curve:0.15,density:1.4,size:1},
+  8:{speed:2000,varSpeed:true,max:20,curve:0.18,density:1.5,size:0.95},
+  9:{speed:2000,varSpeed:true,max:20,curve:0.22,density:1.6,size:0.95},
+  10:{speed:1000,varSpeed:true,max:20,curve:0.25,density:1.8,size:0.9},
+  11:{speed:800,varSpeed:true,max:25,curve:0.28,density:2,size:0.9},
+  12:{speed:700,varSpeed:true,max:25,curve:0.30,density:2.2,size:0.85},
+  13:{speed:600,varSpeed:true,max:25,curve:0.35,density:2.4,size:0.85},
+  14:{speed:500,varSpeed:true,max:25,curve:0.40,density:2.6,size:0.8},
+  15:{speed:400,varSpeed:true,max:30,curve:0.45,density:2.8,size:0.8},
+  16:{speed:300,varSpeed:true,max:30,curve:0.50,density:3,size:0.75},
+  17:{speed:200,varSpeed:true,max:30,curve:0.55,density:3.2,size:0.75},
+  18:{speed:100,varSpeed:true,max:30,curve:0.60,density:3.5,size:0.7},
+  19:{speed:70,varSpeed:true,max:30,curve:0.70,density:4,size:0.7},
+  20:{speed:50,varSpeed:true,max:30,curve:0.80,density:4.5,size:0.65}
+};
+
+let state = { level:1, counts:{}, selected:[], askedType:null, correctAnswer:0, bestLevel:0, attempts:[] };
+let activeIntervals = [];
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startSession(){
+  state.nom = nom.value; state.prenom = prenom.value; state.age = age.value;
+  state.mode = mode.value; state.direction = direction.value;
+  state.selected = [];
+  if(rugby.checked) state.selected.push('rugby');
+  if(football.checked) state.selected.push('football');
+  if(american.checked) state.selected.push('american');
+  if(state.selected.length===0){ alert('Sélectionnez au moins un ballon'); return; }
+  state.level = Number(startLevel.value); state.bestLevel = 0;
+  state.attempts = [];
+  runLevel();
+}
+
+function runLevel(){
+  // Plein écran automatique dès l'entrée en page 2
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(()=>{});
+  }
+  showPage('p2');
+  levelBox.textContent = state.level;
+  arena.style.display='none'; countdown.style.display='block';
+  let n=5;
+  countdown.textContent=n;
+  const cd=setInterval(()=>{
+    n--; countdown.textContent=n;
+    if(n===0){ clearInterval(cd); launchTest(); }
+  },1000);
+}
+
+function launchTest(){
+  const cfg = LEVELS[state.level];
+  countdown.style.display='none';
+  arena.style.display='block';
+  arena.innerHTML='';
+  activeIntervals.forEach(clearInterval);
+  activeIntervals = [];
+
+  state.counts = {rugby:0, football:0, american:0};
+
+  // Chaque type reçoit un nombre TOTAL aléatoire pour le niveau,
+  // puis chaque ballon est injecté à un moment aléatoire sur les 30 secondes.
+  let typesToUse = [...state.selected];
+
+  // Mode 2 : le rugby est la cible, les autres servent de distracteurs
+  if(state.mode==='2'){
+    if(!typesToUse.includes('rugby')) typesToUse.push('rugby');
+    if(!typesToUse.includes('football')) typesToUse.push('football');
+    if(!typesToUse.includes('american')) typesToUse.push('american');
+  }
+
+  typesToUse.forEach(type=>{
+    // Difficulté intelligente : densité variable selon niveau + randomisation
+    const total = Math.floor((Math.random()*cfg.max*cfg.density))+1;
+    state.counts[type] = total;
+
+    for(let i=0;i<total;i++){
+      // apparition totalement indépendante entre 0 et 30s
+      const spawnAt = Math.random()*30000;
+      const timeout = setTimeout(()=>{
+        spawnBall(type,cfg);
+      }, spawnAt);
+      activeIntervals.push(timeout);
+    }
+  });
+
+  let t=30; timerBox.textContent=t;
+  const timer=setInterval(()=>{
+    t--; timerBox.textContent=t;
+    if(t<=0){ clearInterval(timer); activeIntervals.forEach(clearInterval); askQuestion(); }
+  },1000);
+}
+
+function getEmoji(type){ return type==='rugby'?'🏉':type==='football'?'⚽':'🏈'; }
+
+function spawnBall(type,cfg){
+  const ball=document.createElement('div');
+  ball.className='ball'; ball.textContent=getEmoji(type);
+  arena.appendChild(ball);
+  animateBall(ball,cfg);
+}
+
+function animateBall(ball,cfg){
+  const rect = arena.getBoundingClientRect();
+
+  let speed = cfg.speed;
+  if(cfg.varSpeed){
+    // micro-accélérations / ralentissements imprévisibles
+    speed = Math.max(40, cfg.speed*(0.4 + Math.random()*1.4));
+  }
+
+  const dir = pickDirection(state.direction);
+  let start,end;
+
+  // Trajectoires enrichies : horizontales, verticales, diagonales, croisées
+  switch(dir){
+    case 'lr':
+      start={x:-120,y:Math.random()*rect.height};
+      end={x:rect.width+120,y:Math.random()*rect.height};
+      break;
+    case 'rl':
+      start={x:rect.width+120,y:Math.random()*rect.height};
+      end={x:-120,y:Math.random()*rect.height};
+      break;
+    case 'tb':
+      start={x:Math.random()*rect.width,y:-120};
+      end={x:Math.random()*rect.width,y:rect.height+120};
+      break;
+    case 'bt':
+      start={x:Math.random()*rect.width,y:rect.height+120};
+      end={x:Math.random()*rect.width,y:-120};
+      break;
+  }
+
+  // Taille adaptative selon difficulté
+  ball.style.fontSize = `${100 * cfg.size}px`;
+
+  // Rotation naturelle aléatoire
+  const rotationStart = Math.random()*360;
+  const rotationEnd = rotationStart + (Math.random()*720 - 360);
+
+  // Départ hors écran
+  ball.style.transition='none';
+  ball.style.transform=`translate(${start.x}px,${start.y}px) rotate(${rotationStart}deg)`;
+
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      // Léger effet de courbe simulé par variation d'angle visuel
+      const midX = (start.x+end.x)/2 + ((Math.random()-0.5)*rect.width*cfg.curve);
+      const midY = (start.y+end.y)/2 + ((Math.random()-0.5)*rect.height*cfg.curve);
+
+      // trajectoire moins mécanique (point de fuite variable)
+      const finalX = end.x + (midX-end.x)*0.15;
+      const finalY = end.y + (midY-end.y)*0.15;
+
+      ball.style.transition=`transform ${speed}ms linear`;
+      ball.style.transform=`translate(${finalX}px,${finalY}px) rotate(${rotationEnd}deg)`;
+    });
+  });
+
+  const removeBall = () => {
+    if(ball && ball.parentNode){
+      ball.remove();
+    }
+  };
+
+  // On supprime le ballon exactement quand la transition est terminée
+  ball.addEventListener('transitionend', removeBall, { once:true });
+
+  // Sécurité supplémentaire si un navigateur ne déclenche pas l'événement
+  const timeout = setTimeout(removeBall, speed + 100);
+  activeIntervals.push(timeout);
+}
+
+function pickDirection(d){
+  const map={
+    'gauche-droite':['lr'],'droite-gauche':['rl'],'mix-horizontal':['lr','rl'],
+    'haut-bas':['tb'],'bas-haut':['bt'],'mix-vertical':['tb','bt'],'tous-sens':['lr','rl','tb','bt']
+  };
+  const arr=map[d]; return arr[Math.floor(Math.random()*arr.length)];
+}
+function rand(max){ return Math.random()*max; }
+
+function askQuestion(){
+  showPage('p3');
+  let options = state.mode==='2' ? ['rugby'] : state.selected;
+  state.askedType = options[Math.floor(Math.random()*options.length)];
+  state.correctAnswer = state.counts[state.askedType] || 0;
+  const label = state.askedType==='rugby'?'rugby':state.askedType==='football'?'football':'football américain';
+  question.textContent = `Combien y avait-il de ballons de ${label} ?`;
+  answer.value='';
+}
+
+function validateAnswer(){
+  const user = Number(answer.value);
+  const ok = user===state.correctAnswer;
+  if(ok) state.bestLevel = Math.max(state.bestLevel, state.level);
+  state.attempts.push({
+    level: state.level,
+    askedType: state.askedType,
+    expected: state.correctAnswer,
+    answer: Number.isNaN(user) ? '' : user,
+    ok
+  });
+  resultTitle.innerHTML = ok ? '<span class="good">Bonne réponse !</span>' : '<span class="bad">Mauvaise réponse</span>';
+  resultDetail.textContent = `Bonne réponse : ${state.correctAnswer}`;
+  showPage('p4');
+}
+
+function restartSameLevel(){ runLevel(); }
+function nextLevel(){ if(state.level<20) state.level++; runLevel(); }
+
+function resetApp(){
+  showPage('p1');
+}
+
+function renderSummary(){
+  const attempts = state.attempts.length
+    ? `<ul>${state.attempts.map((a, index) => `
+        <li>Essai ${index + 1} - Niveau ${a.level} - ${a.askedType} : réponse ${a.answer}, attendu ${a.expected} (${a.ok ? 'réussi' : 'échoué'})</li>
+      `).join('')}</ul>`
+    : '<p>Aucun essai terminé.</p>';
+
+  summary.innerHTML = `
+    <p><b>Date :</b> ${new Date().toLocaleString()}</p>
+    <p><b>Nom :</b> ${state.nom}</p>
+    <p><b>Prénom :</b> ${state.prenom}</p>
+    <p><b>Âge :</b> ${state.age}</p>
+    <p><b>Mode :</b> ${state.mode}</p>
+    <p><b>Sens :</b> ${state.direction}</p>
+    <p><b>Ballons choisis :</b> ${state.selected.join(', ')}</p>
+    <p><b>Niveau atteint réussi :</b> ${state.bestLevel}</p>
+    <h3>Détail des essais</h3>
+    ${attempts}`;
+}
+
+function downloadPDF(){
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF("p", "mm", "a4");
+  renderSummary();
+  const lines = pdf.splitTextToSize(summary.innerText, 180);
+  pdf.text("Résultats - Défilement ballons", 10, 15);
+  pdf.text(lines, 10, 28);
+  const safeName = `${state.nom || 'joueur'}_${state.prenom || ''}`.replace(/[^a-z0-9_-]+/gi, "_");
+  pdf.save(`Resultat_defilement_ballons_${safeName}.pdf`);
+}
+
+// affiche le résumé avant page 5
+const oldShowPage = showPage;
+showPage = function(id){
+  if(id==='p5'){
+    renderSummary();
+  }
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+</script>
+</body>
+</html>

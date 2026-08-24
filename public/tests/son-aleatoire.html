@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Test auditif – Séquence 12 sons</title>
+
+<style>
+body {
+    background: #111;
+    color: white;
+    font-family: Arial, sans-serif;
+    padding: 20px;
+}
+
+h1 {
+    font-size: 22px;
+}
+
+label {
+    display: block;
+    margin: 8px 0;
+    font-size: 16px;
+}
+
+select {
+    font-size: 14px;
+    margin-left: 10px;
+}
+
+table {
+    margin-top: 15px;
+}
+
+td {
+    padding: 5px 10px;
+}
+
+#status {
+    margin-top: 20px;
+    font-size: 18px;
+}
+
+#result {
+    margin-top: 15px;
+    font-size: 22px;
+    font-weight: bold;
+    color: #4caf50;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Test auditif – touche ESPACE</h1>
+
+<label>
+    <input type="radio" name="mode" value="random" checked>
+    Mode aléatoire (1 son)
+</label>
+
+<label>
+    <input type="radio" name="mode" value="sequence">
+    Mode séquence (12 sons / réponses X-N)
+</label>
+
+<hr>
+
+<h2>Séquence (12 sons)</h2>
+
+<table>
+<script>
+for (let i = 1; i <= 12; i++) {
+    document.write(`
+        <tr>
+            <td>Son ${i}</td>
+            <td>
+                <select id="step${i}">
+                    <option value="">— silence —</option>
+                    <option value="piano">Piano</option>
+                    <option value="flute">Flûte</option>
+                    <option value="trumpet">Trompette</option>
+                </select>
+            </td>
+        </tr>
+    `);
+}
+</script>
+</table>
+
+<div id="status">ESPACE = lancer | X = bonne | N = mauvaise</div>
+<div id="result"></div>
+
+<script>
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+const ctx = new AudioContext();
+
+let isPlaying = false;
+let currentStep = 0;
+let goodAnswers = 0;
+let answeredThisStep = false;
+
+// ===== SYNTHÈSES =====
+function playPiano() {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "triangle";
+    o.frequency.value = 440;
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.6, ctx.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1);
+    o.connect(g).connect(ctx.destination);
+    o.start();
+    o.stop(ctx.currentTime + 1);
+}
+
+function playFlute() {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.value = 660;
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.2);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.2);
+    o.connect(g).connect(ctx.destination);
+    o.start();
+    o.stop(ctx.currentTime + 1.2);
+}
+
+function playTrumpet() {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "sawtooth";
+    o.frequency.value = 330;
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.8);
+    o.connect(g).connect(ctx.destination);
+    o.start();
+    o.stop(ctx.currentTime + 0.8);
+}
+
+function playSound(name) {
+    if (name === "piano") playPiano();
+    if (name === "flute") playFlute();
+    if (name === "trumpet") playTrumpet();
+}
+
+// ===== MODE SÉQUENCE =====
+async function playSequence() {
+    isPlaying = true;
+    currentStep = 0;
+    goodAnswers = 0;
+    document.getElementById("result").textContent = "";
+
+    for (let i = 1; i <= 12; i++) {
+        currentStep = i;
+        answeredThisStep = false;
+
+        const value = document.getElementById("step" + i).value;
+        if (value) playSound(value);
+
+        document.getElementById("status").textContent =
+            `Son ${i}/12 — X = bonne | N = mauvaise`;
+
+        await new Promise(r => setTimeout(r, 2000));
+    }
+
+    isPlaying = false;
+    document.getElementById("status").textContent = "Séquence terminée";
+    document.getElementById("result").textContent =
+        `Bonnes réponses : ${goodAnswers} / 12`;
+}
+
+// ===== MODE ALÉATOIRE =====
+function playRandom() {
+    const list = ["piano", "flute", "trumpet"];
+    playSound(list[Math.floor(Math.random() * list.length)]);
+}
+
+// ===== CLAVIER =====
+document.addEventListener("keydown", async (e) => {
+    if (ctx.state === "suspended") await ctx.resume();
+
+    // ESPACE
+    if (e.code === "Space") {
+        e.preventDefault();
+        if (isPlaying) return;
+        const mode = document.querySelector('input[name="mode"]:checked').value;
+        if (mode === "random") playRandom();
+        if (mode === "sequence") playSequence();
+    }
+
+    // BONNE / MAUVAISE
+    if (!isPlaying || answeredThisStep) return;
+
+    if (e.key.toLowerCase() === "x") {
+        goodAnswers++;
+        answeredThisStep = true;
+    }
+
+    if (e.key.toLowerCase() === "n") {
+        answeredThisStep = true;
+    }
+});
+</script>
+
+</body>
+</html>

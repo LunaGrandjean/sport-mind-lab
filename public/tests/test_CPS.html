@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Test Neuro-Cognitif – Vitesse Motrice</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+body {
+    margin: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(120deg,#f0f2f5,#e6e9ef);
+}
+.card {
+    max-width: 500px;
+    margin: 80px auto;
+    background: white;
+    padding: 35px;
+    border-radius: 12px;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+}
+h1,h2 {
+    text-align: center;
+}
+label {
+    display: block;
+    margin-top: 15px;
+}
+input, select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+button {
+    margin-top: 25px;
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    background: #2b6cb0;
+    color: white;
+    cursor: pointer;
+}
+button:hover {
+    background: #2c5282;
+}
+#testScreen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: white;
+}
+#timer {
+    position: fixed;
+    bottom: 30px;
+    right: 40px;
+    font-size: 48px;
+    font-weight: bold;
+}
+.circle {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.2);
+}
+#results {
+    display: none;
+    max-width: 900px;
+    margin: 40px auto;
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+}
+.comparison {
+    background:#f1f5f9;
+    padding:15px;
+    border-radius:8px;
+    margin-top:20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card" id="page1">
+<h1>Test de Vitesse Motrice</h1>
+
+<label>Nom</label>
+<input id="nom">
+
+<label>Prénom</label>
+<input id="prenom">
+
+<label>Âge</label>
+<input type="number" id="age">
+
+<label>Durée du test</label>
+<select id="temps">
+    <option value="5">5 secondes</option>
+    <option value="10">10 secondes</option>
+    <option value="30">30 secondes</option>
+    <option value="60">60 secondes</option>
+    <option value="120">120 secondes</option>
+    <option value="180">180 secondes</option>
+    <option value="300">300 secondes</option>
+</select>
+
+<button onclick="startTest()">Démarrer le test</button>
+</div>
+
+<div id="testScreen">
+<div id="timer"></div>
+</div>
+
+<div id="results">
+<h2>Compte rendu</h2>
+<div id="summary"></div>
+<div id="comparison"></div>
+<canvas id="chart"></canvas>
+<button onclick="downloadPDF()">Télécharger le PDF</button>
+<label><input type="checkbox" onchange="location.reload()"> Recommencer</label>
+</div>
+
+<script>
+let clicks = 0;
+let duration, startTime;
+let timeline = [];
+let cpsTimeline = [];
+let started = false;
+let interval;
+let lastCircle;
+
+function startTest() {
+    duration = parseInt(temps.value);
+    page1.style.display = "none";
+    testScreen.style.display = "block";
+    testScreen.requestFullscreen?.();
+}
+
+document.addEventListener("keydown", e => {
+    if (testScreen.style.display !== "block") return;
+    if (e.code !== "Space") return;
+
+    if (!started) {
+        started = true;
+        startTime = Date.now();
+        interval = setInterval(updateTimer, 50);
+    }
+
+    clicks++;
+    let t = (Date.now() - startTime) / 1000;
+    timeline.push({t, c: clicks});
+    cpsTimeline.push({t, cps: clicks / t});
+
+    if (lastCircle) lastCircle.remove();
+    let circle = document.createElement("div");
+    circle.className = "circle";
+    circle.style.left = Math.random()*window.innerWidth+"px";
+    circle.style.top = Math.random()*window.innerHeight+"px";
+    testScreen.appendChild(circle);
+    lastCircle = circle;
+});
+
+function updateTimer() {
+    let elapsed = (Date.now() - startTime) / 1000;
+    let remaining = Math.max(0, (duration - elapsed).toFixed(1));
+    timer.innerText = remaining + " s";
+    if (elapsed >= duration) {
+        clearInterval(interval);
+        finish();
+    }
+}
+
+function finish() {
+    document.exitFullscreen?.();
+    testScreen.style.display = "none";
+    results.style.display = "block";
+
+    let cps = (clicks / duration).toFixed(2);
+    let tier = duration / 3;
+    let first = timeline.filter(p=>p.t<=tier).length;
+    let last = timeline.filter(p=>p.t>=2*tier).length;
+    let fatigue = last-first;
+
+    let clientKey = `${nom.value}_${prenom.value}_${age.value}`;
+    let history = JSON.parse(localStorage.getItem(clientKey) || "[]");
+
+    let comparisonText = "<p><strong>Aucun test antérieur pour ce client.</strong></p>";
+    if (history.length > 0) {
+        let prev = history[history.length-1];
+        comparisonText = `
+        <div class="comparison">
+        <strong>Comparaison avec le test précédent :</strong>
+        <p>Δ Clics : ${clicks - prev.clicks}</p>
+        <p>Δ CPS : ${(cps - prev.cps).toFixed(2)}</p>
+        <p>Δ Fatigue : ${fatigue - prev.fatigue}</p>
+        </div>`;
+    }
+
+    history.push({clicks, cps, fatigue});
+    localStorage.setItem(clientKey, JSON.stringify(history));
+
+    summary.innerHTML = `
+    <p>Date : ${new Date().toLocaleString()}</p>
+    <p>Nom : ${nom.value}</p>
+    <p>Prénom : ${prenom.value}</p>
+    <p>Âge : ${age.value}</p>
+    <p>Temps : ${duration}s</p>
+    <p>Clics : ${clicks}</p>
+    <p>CPS moyen : ${cps}</p>
+    <p>Indice de fatigue : ${fatigue}</p>`;
+
+    comparison.innerHTML = comparisonText;
+
+    new Chart(chart, {
+        type: "line",
+        data: {
+            labels: timeline.map(p=>p.t.toFixed(1)),
+            datasets: [
+                { label:"Clics cumulés", data:timeline.map(p=>p.c), borderColor:"blue", yAxisID:"y" },
+                { label:"CPS", data:cpsTimeline.map(p=>p.cps), borderColor:"red", yAxisID:"y1" }
+            ]
+        },
+        options: {
+            scales: {
+                y: { position:"left", title:{display:true,text:"Clics cumulés"} },
+                y1: { position:"right", grid:{drawOnChartArea:false}, title:{display:true,text:"CPS"} }
+            }
+        }
+    });
+}
+
+function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    let pdf = new jsPDF("p","mm","a4");
+
+    let y = 15;
+
+    let summaryLines = pdf.splitTextToSize(summary.innerText, 180);
+    pdf.text(summaryLines, 10, y);
+    y += summaryLines.length * 6 + 5;
+
+    let comparisonLines = pdf.splitTextToSize(comparison.innerText, 180);
+    pdf.text(comparisonLines, 10, y);
+    y += comparisonLines.length * 6 + 8;
+
+    let img = chart.toDataURL("image/png", 1.0);
+    pdf.addImage(img, "PNG", 10, y, 180, 90);
+
+    const safeName = `${nom.value}_${prenom.value}`.replace(/[^a-z0-9_-]+/gi, "_");
+    pdf.save(`Resultat_vitesse_motrice_${safeName || "joueur"}.pdf`);
+}
+</script>
+
+</body>
+</html>

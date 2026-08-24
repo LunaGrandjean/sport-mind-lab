@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Entraînement Neuro-Cognitif</title>
+
+<style>
+body {
+    margin: 0;
+    background: black;
+    color: orange;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+}
+#container {
+    position: fixed;
+    inset: 10px;
+    border: 4px solid orange;
+}
+#menu, #submenu {
+    text-align: center;
+    margin-top: 60px;
+}
+button, select, label {
+    margin: 8px;
+    padding: 6px 10px;
+    font-size: 16px;
+}
+#zone {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: none;
+}
+svg {
+    position: absolute;
+}
+.controls {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 12px;
+}
+#timer {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 11px;
+}
+</style>
+</head>
+
+<body>
+<div id="container">
+
+<!-- PAGE 1 -->
+<div id="menu">
+    <h1>Entraînement Neuro-Cognitif</h1>
+    <p>Choix du mode :</p>
+    <label><input type="radio" name="contentMode" value="random" checked> Aléatoire multiple</label><br>
+    <label><input type="radio" name="contentMode" value="komboid"> Komboïd</label><br><br>
+    <button onclick="goToSubmenu()">Suivant</button>
+</div>
+
+<!-- PAGE 2 -->
+<div id="submenu" style="display:none">
+    <p>Mode d’apparition :</p>
+    <label><input type="radio" name="trigger" value="click" checked> Clic</label>
+    <label><input type="radio" name="trigger" value="space"> ESPACE</label>
+    <label><input type="radio" name="trigger" value="interval"> Intervalle</label><br>
+
+    <select id="intervalSelect">
+        <option value="300">300 ms</option>
+        <option value="650">650 ms</option>
+        <option value="1000">1000 ms</option>
+        <option value="1500">1500 ms</option>
+        <option value="2000">2000 ms</option>
+        <option value="2500">2500 ms</option>
+        <option value="3000">3000 ms</option>
+        <option value="4000">4000 ms</option>
+        <option value="5000">5000 ms</option>
+    </select><br><br>
+
+    <button onclick="start()">Démarrer</button>
+    <button onclick="fullscreen()">Plein écran</button>
+</div>
+
+<!-- ZONE DE JEU -->
+<div id="zone">
+    <div class="controls">
+        <label><input type="checkbox" id="stopCheck" onchange="stopExercise()"> STOP</label>
+    </div>
+    <div id="timer">00:00</div>
+</div>
+
+</div>
+
+<script>
+let shapeTimer, clockTimer, startTime;
+let contentMode = "random";
+
+const randomShapes = [
+    {t:"triangle"}, {t:"square"}, {t:"rectangle"},
+    {t:"pentagon"}, {t:"octagon"}, {t:"plus"},
+    {t:"minus"}, {t:"spiral"}
+];
+const colors = ["violet","red","orange","yellow","green","blue"];
+
+const komboidShapes = [
+    {t:"square", c:"violet", hollow:true},
+    {t:"minus", c:"red"},
+    {t:"plus", c:"yellow"},
+    {t:"triangle", c:"orange", hollow:true},
+    {t:"pentagon", c:"blue", hollow:true}
+];
+
+function goToSubmenu() {
+    contentMode = document.querySelector("input[name='contentMode']:checked").value;
+    menu.style.display = "none";
+    submenu.style.display = "block";
+}
+
+function formatTime(ms) {
+    const s = Math.floor(ms / 1000);
+    return String(Math.floor(s / 60)).padStart(2,"0") + ":" +
+           String(s % 60).padStart(2,"0");
+}
+
+function updateTimer() {
+    timer.textContent = formatTime(Date.now() - startTime);
+}
+
+function drawShape() {
+    if (stopCheck.checked) return;
+
+    zone.querySelectorAll("svg").forEach(s => s.remove());
+
+    let choice;
+    if (contentMode === "komboid") {
+        choice = komboidShapes[Math.floor(Math.random()*komboidShapes.length)];
+    } else {
+        choice = randomShapes[Math.floor(Math.random()*randomShapes.length)];
+        choice.c = colors[Math.floor(Math.random()*colors.length)];
+    }
+
+    const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+    svg.setAttribute("width","200");
+    svg.setAttribute("height","200");
+    svg.style.left = Math.random()*(zone.clientWidth-200)+"px";
+    svg.style.top = Math.random()*(zone.clientHeight-200)+"px";
+
+    let el;
+    switch(choice.t) {
+        case "triangle":
+            el = document.createElementNS(svg.namespaceURI,"polygon");
+            el.setAttribute("points","100,20 180,180 20,180");
+            break;
+        case "square":
+            el = document.createElementNS(svg.namespaceURI,"rect");
+            el.setAttribute("x","40"); el.setAttribute("y","40");
+            el.setAttribute("width","120"); el.setAttribute("height","120");
+            el.setAttribute("transform","rotate(45 100 100)");
+            break;
+        case "pentagon":
+            el = document.createElementNS(svg.namespaceURI,"polygon");
+            el.setAttribute("points","100,20 180,80 150,180 50,180 20,80");
+            break;
+        case "plus":
+            el = document.createElementNS(svg.namespaceURI,"path");
+            el.setAttribute("d","M90 20 H110 V90 H180 V110 H110 V180 H90 V110 H20 V90 H90 Z");
+            break;
+        case "minus":
+            el = document.createElementNS(svg.namespaceURI,"rect");
+            el.setAttribute("x","20"); el.setAttribute("y","96");
+            el.setAttribute("width","160"); el.setAttribute("height","8");
+            break;
+        case "rectangle":
+            el = document.createElementNS(svg.namespaceURI,"rect");
+            el.setAttribute("x","30"); el.setAttribute("y","80");
+            el.setAttribute("width","140"); el.setAttribute("height","60");
+            break;
+        case "octagon":
+            el = document.createElementNS(svg.namespaceURI,"polygon");
+            el.setAttribute("points","60,20 140,20 180,60 180,140 140,180 60,180 20,140 20,60");
+            break;
+        case "spiral":
+            el = document.createElementNS(svg.namespaceURI,"path");
+            el.setAttribute("d","M100 100 m-40 0 a40 40 0 1 1 40 40 a20 20 0 1 0 -20 -20");
+            el.setAttribute("fill","none");
+            el.setAttribute("stroke-width","6");
+            el.setAttribute("stroke",choice.c);
+            svg.appendChild(el);
+            zone.appendChild(svg);
+            return;
+    }
+
+    if (choice.hollow) {
+        el.setAttribute("fill","none");
+        el.setAttribute("stroke",choice.c);
+        el.setAttribute("stroke-width","14");
+    } else {
+        el.setAttribute("fill", choice.c);
+    }
+
+    svg.appendChild(el);
+    zone.appendChild(svg);
+}
+
+function start() {
+    submenu.style.display = "none";
+    zone.style.display = "block";
+    stopCheck.checked = false;
+
+    startTime = Date.now();
+    clockTimer = setInterval(updateTimer, 500);
+
+    const trigger = document.querySelector("input[name='trigger']:checked").value;
+
+    document.onclick = null;
+    document.onkeydown = null;
+    clearInterval(shapeTimer);
+
+    if (trigger === "click") document.onclick = drawShape;
+    if (trigger === "space") document.onkeydown = e => e.code==="Space" && drawShape();
+    if (trigger === "interval") {
+        shapeTimer = setInterval(drawShape, intervalSelect.value);
+    }
+}
+
+function stopExercise() {
+    clearInterval(shapeTimer);
+    clearInterval(clockTimer);
+    document.onclick = null;
+    document.onkeydown = null;
+    zone.style.display = "none";
+    submenu.style.display = "none";
+    menu.style.display = "block";
+}
+
+function fullscreen() {
+    document.documentElement.requestFullscreen();
+}
+</script>
+
+</body>
+</html>

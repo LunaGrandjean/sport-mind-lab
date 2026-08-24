@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Test de Mémoire de Travail</title>
+
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background-color: #c9b08a;
+    text-align: center;
+    overflow: hidden;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    padding-top: 30px;
+}
+
+h1, h2 {
+    margin: 5px;
+}
+
+#controls {
+    margin-bottom: 20px;
+    background: rgba(255,255,255,0.4);
+    display: inline-block;
+    padding: 15px 20px;
+    border-radius: 10px;
+    transition: opacity 0.3s;
+}
+
+#sequence {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin: 30px 0;
+    min-height: 80px;
+}
+
+.ball {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 28px;
+    font-weight: bold;
+    color: white;
+    box-shadow: inset -6px -6px 12px rgba(0,0,0,0.35),
+                inset 4px 4px 8px rgba(255,255,255,0.3),
+                0 4px 8px rgba(0,0,0,0.3);
+}
+
+input[type="text"] {
+    font-size: 20px;
+    padding: 10px;
+    width: 320px;
+    text-align: center;
+}
+
+button {
+    font-size: 18px;
+    padding: 10px 25px;
+    margin-top: 15px;
+    cursor: pointer;
+}
+
+#message {
+    margin-top: 20px;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+#startLevelSelect {
+    display: none;
+    margin-top: 10px;
+}
+
+.semi-transparent {
+    opacity: 0.5;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Test de Mémoire de Travail</h1>
+<h2 id="level">Niveau 1</h2>
+
+<div id="controls">
+    <strong>Temps d'affichage :</strong><br><br>
+    <label><input type="radio" name="time" value="1"> 1 s</label>
+    <label><input type="radio" name="time" value="2"> 2 s</label>
+    <label><input type="radio" name="time" value="3"> 3 s</label>
+    <label><input type="radio" name="time" value="4"> 4 s</label>
+    <label><input type="radio" name="time" value="5" checked> 5 s</label>
+    <label><input type="radio" name="time" value="6"> 6 s</label>
+    <label><input type="radio" name="time" value="7"> 7 s</label>
+    <label><input type="radio" name="time" value="8"> 8 s</label>
+    <label><input type="radio" name="time" value="9"> 9 s</label>
+    <label><input type="radio" name="time" value="10"> 10 s</label>
+
+    <hr>
+
+    <label>
+        <input type="checkbox" id="customStart" onchange="toggleStartLevel()">
+        Choisir le niveau de départ
+    </label>
+
+    <div id="startLevelSelect">
+        Niveau de départ :
+        <select id="startLevel">
+            <script>
+                for (let i = 1; i <= 20; i++) {
+                    document.write(`<option value="${i}">${i}</option>`);
+                }
+            </script>
+        </select>
+    </div>
+
+    <br>
+    <button id="startBtn">Démarrer le test</button>
+</div>
+
+<div id="sequence"></div>
+
+<input type="text" id="userInput" placeholder="Entrez la suite" disabled>
+<br>
+<button onclick="validateAnswer()" id="validateBtn" disabled>Valider</button>
+
+<div id="message"></div>
+
+<script>
+let level = 1;
+const maxLevel = 20;
+let currentSequence = "";
+
+const colors = [
+    "#d32f2f", "#1976d2", "#388e3c", "#fbc02d",
+    "#7b1fa2", "#f57c00", "#455a64", "#c2185b"
+];
+
+function toggleStartLevel() {
+    document.getElementById("startLevelSelect").style.display =
+        document.getElementById("customStart").checked ? "block" : "none";
+}
+
+function getDisplayTime() {
+    return document.querySelector('input[name="time"]:checked').value * 1000;
+}
+
+function generateSequence(length) {
+    let seq = "";
+    for (let i = 0; i < length; i++) {
+        seq += Math.floor(Math.random() * 10);
+    }
+    return seq;
+}
+
+function showSequence() {
+    const container = document.getElementById("sequence");
+    container.innerHTML = "";
+
+    for (let digit of currentSequence) {
+        const ball = document.createElement("div");
+        ball.className = "ball";
+        ball.style.backgroundColor =
+            colors[Math.floor(Math.random() * colors.length)];
+        ball.textContent = digit;
+        container.appendChild(ball);
+    }
+}
+
+function startLevel() {
+    document.getElementById("controls").classList.add("semi-transparent");
+
+    document.getElementById("message").innerText = "";
+    document.getElementById("userInput").value = "";
+    document.getElementById("userInput").disabled = true;
+    document.getElementById("validateBtn").disabled = true;
+
+    currentSequence = generateSequence(level + 1);
+    document.getElementById("level").innerText = "Niveau " + level;
+    showSequence();
+
+    setTimeout(() => {
+        document.getElementById("sequence").innerHTML = "";
+        document.getElementById("userInput").disabled = false;
+        document.getElementById("validateBtn").disabled = false;
+        document.getElementById("userInput").focus();
+
+        document.getElementById("controls").classList.remove("semi-transparent");
+    }, getDisplayTime());
+}
+
+function validateAnswer() {
+    const userAnswer = document.getElementById("userInput").value;
+
+    if (userAnswer === currentSequence) {
+        level++;
+        if (level > maxLevel) {
+            document.getElementById("message").innerText =
+                "🎉 Test terminé – niveau maximal atteint.";
+        } else {
+            startLevel();
+        }
+    } else {
+        document.getElementById("message").innerText =
+            "❌ Erreur – niveau atteint : " + level;
+    }
+
+    document.getElementById("userInput").disabled = false;
+    document.getElementById("validateBtn").disabled = false;
+}
+
+// Plein écran
+function goFullScreen() {
+    if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen();
+    } else if (document.documentElement.webkitRequestFullscreen) {
+        document.documentElement.webkitRequestFullscreen();
+    } else if (document.documentElement.msRequestFullscreen) {
+        document.documentElement.msRequestFullscreen();
+    }
+}
+
+// Bouton "Démarrer"
+document.getElementById("startBtn").onclick = () => {
+    if (document.getElementById("customStart").checked) {
+        level = parseInt(document.getElementById("startLevel").value);
+    } else {
+        level = 1;
+    }
+    goFullScreen();
+    startLevel();
+};
+</script>
+
+</body>
+</html>

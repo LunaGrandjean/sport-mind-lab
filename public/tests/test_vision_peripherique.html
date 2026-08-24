@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Test de Vision Périphérique</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+body{margin:0;font-family:"Segoe UI",Arial,sans-serif;}
+.page{width:100vw;height:100vh;display:none;justify-content:center;align-items:center;}
+.page.active{display:flex;}
+
+#pagePatient{background:linear-gradient(135deg,#dde6ee,#f5f7f9);}
+.card{background:white;padding:45px;border-radius:16px;width:380px;
+box-shadow:0 15px 35px rgba(0,0,0,0.15);text-align:center;}
+input{width:100%;padding:12px;margin:10px 0;font-size:16px;}
+button{width:100%;padding:14px;font-size:18px;background:#3a7bd5;
+color:white;border:none;border-radius:8px;cursor:pointer;}
+
+#pageCountdown{background:#2c3e50;color:white;font-size:120px;font-weight:bold;}
+
+#pageTest{background:#eee;flex-direction:column;}
+#arena{position:relative;width:460px;height:460px;border-radius:50%;background:#e1e6eb;}
+.circle{position:absolute;width:52px;height:52px;border:6px solid #2c3e50;border-radius:50%;cursor:pointer;}
+.invisible{opacity:0;}
+#central{top:50%;left:50%;transform:translate(-50%,-50%);}
+#cross{position:absolute;font-size:160px;color:red;display:none;
+top:50%;left:50%;transform:translate(-50%,-50%);}
+
+#pageReport{background:#fafafa;flex-direction:column;}
+#reportBox{background:white;padding:30px;border-radius:12px;width:520px;
+box-shadow:0 10px 25px rgba(0,0,0,0.1);text-align:center;}
+.history{text-align:left;margin-top:20px;font-size:14px;}
+</style>
+</head>
+
+<body>
+
+<div id="pagePatient" class="page active">
+<div class="card">
+<h1>Test de vision périphérique</h1>
+<input id="prenom" placeholder="Prénom">
+<input id="nom" placeholder="Nom">
+<input id="age" type="number" placeholder="Âge">
+<button onclick="goCountdown()">Démarrer</button>
+</div>
+</div>
+
+<div id="pageCountdown" class="page"><div id="countdown">3</div></div>
+
+<div id="pageTest" class="page">
+<h2>Niveau <span id="levelDisplay">1</span></h2>
+<div id="arena">
+<div id="central" class="circle"></div>
+<div id="cross">✖</div>
+</div>
+</div>
+
+<div id="pageReport" class="page">
+<div id="reportBox">
+<h1>Compte rendu</h1>
+<div id="reportText"></div>
+<div id="history" class="history"></div><br>
+<label><input type="checkbox" id="restartBox"> Recommencer</label>
+<div id="restartOptions" style="display:none;margin-top:10px;">
+<label><input type="radio" name="restart" onclick="restartSame()"> Même client</label><br>
+<label><input type="radio" name="restart" onclick="restartOther()"> Autre client</label>
+</div>
+</div>
+</div>
+
+<script>
+const maxLevel=70,startTime=1500,endTime=30;
+let client={},level=1,errors=0,responseTimes=[],responseStart=0,canClick=false,targetIndex=0;
+
+function enterFullscreen(){document.documentElement.requestFullscreen?.();}
+function exitFullscreen(){if(document.fullscreenElement)document.exitFullscreen();}
+function showPage(id){
+document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+}
+
+function appearanceTime(l){return startTime-(l-1)*(startTime-endTime)/(maxLevel-1);}
+function circlesCount(l){return l<=10?3:l<=25?4:l<=45?5:6;}
+function shuffle(a){return a.sort(()=>Math.random()-0.5);}
+
+function setGap(c,g){
+["Top","Right","Bottom","Left"].forEach(b=>c.style["border"+b+"Color"]="#2c3e50");
+c.style["border"+["Top","Right","Bottom","Left"][g]+"Color"]="transparent";
+}
+
+function goCountdown(){
+client={prenom:prenom.value,nom:nom.value,age:age.value};
+enterFullscreen();
+showPage("pageCountdown");
+runCountdown(startTest);
+}
+
+function runCountdown(cb){
+let c=3;countdown.textContent=c;
+const i=setInterval(()=>{
+c--;
+if(c===0){clearInterval(i);cb();}
+else countdown.textContent=c;
+},1000);
+}
+
+function startTest(){
+level=1;errors=0;responseTimes=[];
+showPage("pageTest");
+setupLevel();
+}
+
+function setupLevel(){
+canClick=false;
+levelDisplay.textContent=level;
+arena.querySelectorAll(".circle:not(#central)").forEach(c=>c.remove());
+const refGap=Math.floor(Math.random()*4);
+setGap(central,refGap);
+central.classList.remove("invisible");
+
+let pos=shuffle([
+{x:200,y:20},{x:350,y:120},{x:350,y:280},
+{x:200,y:380},{x:50,y:280},{x:50,y:120}
+]).slice(0,circlesCount(level));
+
+targetIndex=Math.floor(Math.random()*pos.length);
+
+pos.forEach((p,i)=>{
+const c=document.createElement("div");
+c.className="circle";
+c.style.left=p.x+"px";c.style.top=p.y+"px";
+setGap(c,i===targetIndex?refGap:(refGap+1)%4);
+c.onclick=()=>handleChoice(i);
+arena.appendChild(c);
+});
+
+/* apparition après délai normal */
+setTimeout(()=>{
+central.classList.add("invisible");
+arena.querySelectorAll(".circle").forEach(c=>c.classList.add("invisible"));
+responseStart=performance.now();
+canClick=true;
+},appearanceTime(level));
+}
+
+function showCross(cb){
+cross.style.display="block";
+setTimeout(()=>{cross.style.display="none";cb();},1200);
+}
+
+function handleChoice(i){
+if(!canClick)return;
+responseTimes.push(performance.now()-responseStart);
+
+if(i!==targetIndex){
+errors++;
+showCross(()=>{
+if(errors>=2){endTest();return;}
+showPage("pageCountdown");
+runCountdown(()=>{
+showPage("pageTest");
+setTimeout(()=>{        /* ✅ PAUSE 1s AVANT APPARITION */
+level++;
+setupLevel();
+},1000);
+});
+});
+return;
+}
+level++;
+setupLevel();
+}
+
+function endTest(){
+exitFullscreen();
+showPage("pageReport");
+
+const avg=Math.round(responseTimes.reduce((a,b)=>a+b,0)/responseTimes.length);
+const date=new Date().toLocaleDateString();
+const key=`${client.nom}_${client.prenom}_${client.age}`;
+const history=JSON.parse(localStorage.getItem(key)||"[]");
+history.push({date,level,time:Math.round(appearanceTime(level)),avg});
+localStorage.setItem(key,JSON.stringify(history));
+
+reportText.innerHTML=`
+<b>${client.prenom} ${client.nom}</b><br>
+Niveau atteint : ${level}<br>
+Temps apparition : ${Math.round(appearanceTime(level))} ms<br>
+Temps moyen réponse : ${avg} ms`;
+
+historyDiv=document.getElementById("history");
+historyDiv.innerHTML="<b>Historique :</b><br>";
+history.forEach(h=>{
+historyDiv.innerHTML+=`${h.date} – Niveau ${h.level} (${h.time} ms, ${h.avg} ms)<br>`;
+});
+
+generatePDF(history);   /* ✅ EXPORT PDF AUTOMATIQUE */
+
+restartBox.onchange=()=>restartOptions.style.display="block";
+}
+
+function generatePDF(history){
+const {jsPDF}=window.jspdf;
+const d=new jsPDF();
+d.text("Compte rendu – Test de vision périphérique",10,20);
+d.text(`${client.prenom} ${client.nom} (${client.age} ans)`,10,35);
+let y=55;
+history.forEach(h=>{
+d.text(`${h.date} : Niveau ${h.level} – ${h.time} ms – ${h.avg} ms`,10,y);
+y+=10;
+});
+d.save("compte_rendu_vision_peripherique.pdf");
+}
+
+function restartSame(){goCountdown();}
+function restartOther(){location.reload();}
+</script>
+
+</body>
+</html>

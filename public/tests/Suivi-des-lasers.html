@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Suivi de laser</title>
+<style>
+  *{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#0b1020;color:#fff}
+  .screen{display:none;min-height:100vh;padding:24px}
+  .active{display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .panel{background:#141b34;padding:24px;border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,.35);width:min(700px,90vw)}
+  h1,h2{text-align:center}
+  .row{margin:16px 0}
+  button{padding:14px 24px;border:none;border-radius:12px;cursor:pointer;font-size:16px}
+  .primary{background:#ffb300;color:#111;font-weight:bold}
+  #arena,#followArena,#pacmanArena{position:fixed;inset:0;background:#000;overflow:hidden}
+  .target{position:absolute;border-radius:50%;background:#ffd400;border:6px solid orange}
+  .distractor{position:absolute;border-radius:50%}
+  .timer{position:fixed;top:20px;left:20px;font-size:28px;font-weight:bold;z-index:1000}
+  .countdown{font-size:80px;font-weight:bold}
+  .success{color:#22c55e}.fail{color:#ef4444}
+  canvas{background:#050505;display:block}
+</style>
+</head>
+<body>
+<div id="menu" class="screen active">
+  <div class="panel">
+    <h1>Suivi de laser</h1>
+    <div class="row">
+      <label><input type="radio" name="mode" value="1" checked> Mode 1 - Pointer 20 cibles</label><br>
+      <label><input type="radio" name="mode" value="2"> Mode 2 - Suivi de cible</label><br>
+      <label><input type="radio" name="mode" value="3"> Mode 3 - Pacman</label>
+    </div>
+    <div class="row">
+      <label>Niveau : <input id="level" type="number" min="1" max="20" value="1"></label>
+    </div>
+    <button class="primary" onclick="launchMode()">Valider</button>
+  </div>
+</div>
+
+<div id="countdownScreen" class="screen"><div class="countdown" id="countdown"></div></div>
+<div id="arena" class="screen"></div>
+<div id="followArena" class="screen"><div class="timer" id="followTimer">0.00s</div></div>
+<div id="pacmanArena" class="screen"><div class="timer" id="pacmanTimer">0.00s</div><canvas id="pacCanvas"></canvas></div>
+<div id="score" class="screen"><div class="panel" id="scoreContent"></div></div>
+
+<script>
+let state={mode:1,level:1,start:0,current:0};
+let currentMode1Target=null;
+let currentDistractors=[];
+let mode1TimerInterval=null;
+let followRunning=false;
+let followElapsed=0;
+let followStartTime=0;
+let followAnim=null;
+let pacLoop=null;
+let pacStartTime=0;
+let pacFailed=false;
+
+const screens=[...document.querySelectorAll('.screen')];
+function forceFullscreen(){
+  const el=document.documentElement;
+  if(el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+  else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  else if(el.msRequestFullscreen) el.msRequestFullscreen();
+}
+function show(id){
+  screens.forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  forceFullscreen();
+}
+function sizeByLevel(l){ return Math.max(18,80-l*3); }
+function randomPos(size){
+  return {x:Math.random()*(window.innerWidth-size),y:Math.random()*(window.innerHeight-size)};
+}
+function createCircle(size,cls,bg,border){
+  const d=document.createElement('div');
+  d.className=cls;
+  d.style.width=size+'px';
+  d.style.height=size+'px';
+  d.style.borderRadius='50%';
+  d.style.position='absolute';
+
+  // Rendu plus professionnel : dégradé + relief + halo lumineux
+  d.style.background=`radial-gradient(circle at 35% 35%, #fff8b0 0%, ${bg} 45%, ${bg} 70%, rgba(0,0,0,0.15) 100%)`;
+  d.style.border=border;
+  d.style.boxShadow=`0 0 ${Math.max(8,size*0.25)}px rgba(255,180,0,0.45), inset -4px -4px 8px rgba(0,0,0,0.18), inset 3px 3px 6px rgba(255,255,255,0.35)`;
+  d.style.transition='all .12s linear';
+
+  const p=randomPos(size);
+  d.style.left=p.x+'px';
+  d.style.top=p.y+'px';
+  return d;
+}
+function launchMode(){
+  const modeInput=document.querySelector('input[name="mode"]:checked');
+  const levelInput=document.getElementById('level');
+  state.mode=modeInput?parseInt(modeInput.value,10):1;
+  state.level=Math.min(20,Math.max(1,parseInt(levelInput.value,10)||1));
+  countdown(startSelectedMode);
+}
+function startSelectedMode(){
+  if(state.mode===1) startMode1();
+  else if(state.mode===2) startMode2();
+  else startMode3();
+}
+function countdown(cb){
+  show('countdownScreen');
+  let n=5;
+  const el=document.getElementById('countdown');
+  el.textContent=n;
+  const interval=setInterval(()=>{
+    n--;
+    if(n<=0){ clearInterval(interval); cb(); }
+    else el.textContent=n;
+  },1000);
+}
+function distractorConfig(level){
+  if(level<6) return [];
+
+  // Retourne un tableau de configurations précises des distracteurs
+  if(level>=6 && level<=9){
+    return [{ bg:'#d9f99d', border:'#d9f99d', size:'big' }];
+  }
+  if(level>=10 && level<=11){
+    return [{ bg:'yellow', border:'yellow', size:'big' }];
+  }
+  if(level>=12 && level<=13){
+    return [{ bg:'yellow', border:'yellow', size:'same' }];
+  }
+  if(level>=14 && level<=15){
+    const n=Math.random()<0.5?2:3;
+    return Array.from({length:n},()=>({
+      bg:Math.random()<0.33?'yellow':Math.random()<0.66?'#d9f99d':'orange',
+      border:Math.random()<0.33?'yellow':Math.random()<0.66?'#d9f99d':'orange',
+      size:'same'
+    }));
+  }
+  if(level>=16 && level<=17){
+    return Array.from({length:5},()=>({
+      bg:Math.random()<0.33?'yellow':Math.random()<0.66?'#d9f99d':'orange',
+      border:Math.random()<0.33?'yellow':Math.random()<0.66?'#d9f99d':'orange',
+      size:'same'
+    }));
+  }
+
+  // Niveaux 18 à 20 : 10 distracteurs avec distribution spécifique
+  const arr=[];
+  const bigCount=Math.floor(Math.random()*2)+1; // 1 à 2
+  const smallCount=Math.floor(Math.random()*2)+3; // 3 à 4
+  const sameCount=Math.floor(Math.random()*2)+2; // 2 à 3
+  while(arr.length<bigCount) arr.push({bg:'yellow',border:'yellow',size:'big'});
+  while(arr.length<bigCount+smallCount) arr.push({bg:'yellow',border:'yellow',size:'small'});
+  while(arr.length<bigCount+smallCount+sameCount) arr.push({bg:'yellow',border:'yellow',size:'same'});
+  while(arr.length<10) arr.push({bg:'yellow',border:'orange',size:'same', dashed:true});
+  return arr;
+}
+function startMode1(){
+  show('arena');
+  const arena=document.getElementById('arena');
+  arena.innerHTML='<div class="timer" id="timer1">0.00s</div>';
+  state.current=1;
+  state.start=performance.now();
+  currentMode1Target=createCircle(sizeByLevel(state.level),'target','yellow','6px solid orange');
+  arena.appendChild(currentMode1Target);
+  mode1TimerInterval=setInterval(()=>{
+    const t=((performance.now()-state.start)/1000).toFixed(2);
+    const timer=document.getElementById('timer1');
+    if(timer) timer.textContent=t+'s';
+  },50);
+  document.onkeydown=(e)=>{
+    if(e.code!=='Space') return;
+    if(currentMode1Target) currentMode1Target.remove();
+    currentDistractors.forEach(d=>d.remove());
+    currentDistractors=[];
+    if(state.current>=20){
+      clearInterval(mode1TimerInterval);
+      document.onkeydown=null;
+      showScore('Mode 1 - Pointer 20 cibles','Niveau '+state.level,'Temps : '+((performance.now()-state.start)/1000).toFixed(2)+'s');
+      return;
+    }
+    state.current++;
+    const distractors=distractorConfig(state.level);
+    distractors.forEach(cfg=>{
+      let base=sizeByLevel(state.level);
+      let size=base;
+      if(cfg.size==='big') size=base*1.35;
+      if(cfg.size==='small') size=base*0.70;
+      const borderStyle=cfg.dashed ? '4px dashed '+cfg.border : '4px solid '+cfg.border;
+      const d=createCircle(size,'distractor',cfg.bg,borderStyle);
+      arena.appendChild(d);
+      currentDistractors.push(d);
+    });
+    currentMode1Target=createCircle(sizeByLevel(state.level),'target','yellow','6px solid orange');
+    arena.appendChild(currentMode1Target);
+  };
+}
+function startMode2(){
+  show('followArena');
+  const arena=document.getElementById('followArena');
+  arena.innerHTML='<div class="timer" id="followTimer">0.00s</div>';
+  const obj=createCircle(sizeByLevel(state.level),'target','yellow','6px solid orange');
+  arena.appendChild(obj);
+  let x=100,y=100,vx=2+state.level/3,vy=2+state.level/4;
+  followElapsed=0; followRunning=false; followStartTime=performance.now();
+  document.onkeydown=(e)=>{ if(e.code==='Space') followRunning=!followRunning; };
+  function animate(){
+    x+=vx; y+=vy;
+    if(x<0||x>window.innerWidth-sizeByLevel(state.level)) vx*=-1;
+    if(y<0||y>window.innerHeight-sizeByLevel(state.level)) vy*=-1;
+    obj.style.left=x+'px'; obj.style.top=y+'px';
+    if(followRunning) followElapsed+=0.016;
+    document.getElementById('followTimer').textContent=followElapsed.toFixed(2)+'s';
+    if((performance.now()-followStartTime)>=40000){
+      cancelAnimationFrame(followAnim);
+      document.onkeydown=null;
+      showScore('Mode 2 - Suivi de cible','Niveau '+state.level,'Temps final : '+followElapsed.toFixed(2)+'s',followElapsed<3?'<p class="success">Niveau réussi</p>':'<p class="fail">Échec de suivi</p>');
+      return;
+    }
+    followAnim=requestAnimationFrame(animate);
+  }
+  animate();
+}
+function startMode3(){
+  show('pacmanArena');
+  const canvas=document.getElementById('pacCanvas');
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+  const ctx=canvas.getContext('2d');
+
+  const cellSize=Math.max(22,90-(state.level*3));
+  const cols=Math.floor(canvas.width/cellSize);
+  const rows=Math.floor(canvas.height/cellSize);
+
+  // Génération du labyrinthe (DFS)
+  const grid=[];
+  for(let y=0;y<rows;y++){
+    grid[y]=[];
+    for(let x=0;x<cols;x++){
+      grid[y][x]={visited:false,walls:[true,true,true,true]};
+    }
+  }
+
+  function carve(cx,cy){
+    grid[cy][cx].visited=true;
+    const dirs=[[0,-1,0,2],[1,0,1,3],[0,1,2,0],[-1,0,3,1]].sort(()=>Math.random()-0.5);
+    for(const [dx,dy,w1,w2] of dirs){
+      const nx=cx+dx, ny=cy+dy;
+      if(nx>=0 && ny>=0 && nx<cols && ny<rows && !grid[ny][nx].visited){
+        grid[cy][cx].walls[w1]=false;
+        grid[ny][nx].walls[w2]=false;
+        carve(nx,ny);
+      }
+    }
+  }
+  carve(0,0);
+
+  // Nombre de Pacman doublé à partir du niveau 4
+  // Anciennement : 2 / 3 / 4 selon paliers
+  // Nouveau : 4 / 6 / 8 selon paliers
+  const pacCount = state.level>=17 ? 8 : state.level>=12 ? 6 : state.level>=4 ? 4 : 1;
+  let speed=1.5+(state.level*0.18);
+  // Boost spécifique des niveaux élevés
+  if(state.level===18) speed += 1;
+  if(state.level===19) speed += 2;
+  if(state.level===20) speed += 3;
+
+  // Centre du labyrinthe
+  const centerX=Math.floor(cols/2);
+  const centerY=Math.floor(rows/2);
+  const offset=Math.max(2,Math.floor(Math.min(cols,rows)/4));
+
+  // Départs opposés, à mi-chemin centre/bord
+  // Points de départ répartis autour du centre sur un "anneau"
+  // Compatible avec 1, 4, 6 ou 8 Pacman
+  const starts=[];
+  const radius=offset;
+  for(let i=0;i<pacCount;i++){
+    const angle=(Math.PI*2*i)/pacCount;
+    const sx=Math.max(0, Math.min(cols-1, Math.round(centerX + Math.cos(angle)*radius)));
+    const sy=Math.max(0, Math.min(rows-1, Math.round(centerY + Math.sin(angle)*radius)));
+    starts.push([sx,sy]);
+  }
+
+  const pacs=[];
+  for(let i=0;i<pacCount;i++){
+    const s=starts[i];
+    pacs.push({cx:s[0],cy:s[1],x:s[0]*cellSize+cellSize/2,y:s[1]*cellSize+cellSize/2,to:null,from:null,progress:0});
+  }
+
+  function neighbors(cx,cy){
+    const n=[];
+    if(!grid[cy][cx].walls[0] && cy>0) n.push([cx,cy-1]);
+    if(!grid[cy][cx].walls[1] && cx<cols-1) n.push([cx+1,cy]);
+    if(!grid[cy][cx].walls[2] && cy<rows-1) n.push([cx,cy+1]);
+    if(!grid[cy][cx].walls[3] && cx>0) n.push([cx-1,cy]);
+    return n;
+  }
+
+  function drawMaze(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.strokeStyle='blue';
+    ctx.lineWidth=4;
+
+    for(let y=0;y<rows;y++){
+      for(let x=0;x<cols;x++){
+        const cell=grid[y][x];
+        const px=x*cellSize, py=y*cellSize;
+        if(cell.walls[0]){ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px+cellSize,py);ctx.stroke();}
+        if(cell.walls[1]){ctx.beginPath();ctx.moveTo(px+cellSize,py);ctx.lineTo(px+cellSize,py+cellSize);ctx.stroke();}
+        if(cell.walls[2]){ctx.beginPath();ctx.moveTo(px,py+cellSize);ctx.lineTo(px+cellSize,py+cellSize);ctx.stroke();}
+        if(cell.walls[3]){ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px,py+cellSize);ctx.stroke();}
+      }
+    }
+
+    // Point rouge central
+    ctx.beginPath();
+    ctx.arc(centerX*cellSize+cellSize/2, centerY*cellSize+cellSize/2, Math.max(20,cellSize*0.45), 0, Math.PI*2);
+    ctx.fillStyle='rgba(255,0,0,0.35)';
+    ctx.fill();
+  }
+
+  function movePacman(p){
+    if(!p.to){
+      let opts=neighbors(p.cx,p.cy);
+      if(p.from){
+        opts=opts.filter(o=>!(o[0]===p.from[0] && o[1]===p.from[1]));
+      }
+      if(!opts.length) opts=neighbors(p.cx,p.cy);
+      p.to=opts[Math.floor(Math.random()*opts.length)];
+      p.progress=0;
+    }
+
+    p.progress += speed*0.01;
+    if(p.progress>=1){
+      p.from=[p.cx,p.cy];
+      p.cx=p.to[0];
+      p.cy=p.to[1];
+      p.to=null;
+      p.progress=0;
+    }else{
+      const sx=p.cx*cellSize+cellSize/2;
+      const sy=p.cy*cellSize+cellSize/2;
+      const tx=p.to[0]*cellSize+cellSize/2;
+      const ty=p.to[1]*cellSize+cellSize/2;
+      p.x=sx+(tx-sx)*p.progress;
+      p.y=sy+(ty-sy)*p.progress;
+    }
+  }
+
+  pacStartTime=performance.now();
+  pacFailed=false;
+
+  document.onkeydown=(e)=>{
+    if(e.code==='Space'){
+      pacFailed=true;
+      endMode3(((performance.now()-pacStartTime)/1000).toFixed(2));
+    }
+  };
+
+  function loop(){
+    drawMaze();
+    pacs.forEach(p=>{
+      movePacman(p);
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,Math.max(10,cellSize*0.22),0.25*Math.PI,1.75*Math.PI);
+      ctx.lineTo(p.x,p.y);
+      ctx.fillStyle='yellow';
+      ctx.fill();
+    });
+
+    const t=(performance.now()-pacStartTime)/1000;
+    document.getElementById('pacmanTimer').textContent=t.toFixed(2)+'s';
+
+    if(t>=30){ endMode3(30); return; }
+    pacLoop=requestAnimationFrame(loop);
+  }
+
+  loop();
+}
+
+function endMode3(t){
+  cancelAnimationFrame(pacLoop);
+  document.onkeydown=null;
+  if(pacFailed) showScore('Mode 3 - Pacman','Niveau '+state.level,'<p class="fail">Échec à '+t+'s</p>');
+  else showScore('Mode 3 - Pacman','Niveau '+state.level,'<p class="success">Niveau réussi</p>');
+}
+function showScore(title,level,main,extra=''){
+  show('score');
+  document.getElementById('scoreContent').innerHTML=`<h2>SCORE</h2><p>${title}</p><p>${level}</p><p>${main}</p>${extra}<button class="primary" onclick="replay()">Rejouer au même niveau</button><button onclick="show('menu')">Revenir au menu principal</button>`;
+}
+function replay(){ countdown(startSelectedMode); }
+window.onload=()=>{ document.querySelector('button.primary').onclick=launchMode; };
+</script>
+</body>
+</html>
+
+
+

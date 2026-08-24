@@ -16,11 +16,6 @@ export const Route = createFileRoute("/")({
         content:
           "Vue d'ensemble du cabinet : sportifs suivis, résultats enregistrés et accès rapide aux tests neurocognitifs.",
       },
-      { property: "og:title", content: "Accueil — Performance neurocognitive sportive" },
-      {
-        property: "og:description",
-        content: "Vue d'ensemble du cabinet et accès rapide aux tests neurocognitifs.",
-      },
     ],
   }),
   component: Accueil,
@@ -29,6 +24,29 @@ export const Route = createFileRoute("/")({
 function Accueil() {
   const { athletes, results, selectedAthlete } = useAppStore();
   const athleteResults = results.filter((r) => r.athleteId === selectedAthlete.id);
+
+  const cards = [
+    {
+      to: "/resultats",
+      title: "Résultats / Dashboard",
+      text: "Profil radar 10 axes, comparaison par groupe et meilleurs scores.",
+    },
+    {
+      to: "/tests",
+      title: "Tests",
+      text: "Batterie de tests neurocognitifs générant des scores radar.",
+    },
+    {
+      to: "/applications",
+      title: "Applications de travail",
+      text: "Outils d'entraînement et de double tâche sans score radar.",
+    },
+    {
+      to: "/saisie",
+      title: "Saisie manuelle",
+      text: "Scores cabinet réalisés avec haltères, pods ou protocoles externes.",
+    },
+  ] as const;
 
   return (
     <div className="space-y-6">
@@ -53,31 +71,15 @@ function Accueil() {
         <StatCard label="Axes du radar" value={AXES.length} icon={RadarIcon} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        {[
-          {
-            to: "/resultats",
-            title: "Résultats / Dashboard",
-            text: "Profil radar 10 axes, comparaison par groupe et meilleurs scores.",
-          },
-          {
-            to: "/tests",
-            title: "Tests",
-            text: "Batterie de tests neurocognitifs générant des scores radar.",
-          },
-          {
-            to: "/applications",
-            title: "Applications de travail",
-            text: "Outils d'entraînement et de double tâche sans score radar.",
-          },
-        ].map((c) => (
+      <div className="grid gap-4 lg:grid-cols-4">
+        {cards.map((card) => (
           <Link
-            key={c.to}
-            to={c.to}
+            key={card.to}
+            to={card.to}
             className="rounded-lg border border-border bg-card p-5 shadow-[var(--shadow-card)] transition-colors hover:border-primary/40"
           >
-            <p className="text-sm font-semibold">{c.title}</p>
-            <p className="mt-1.5 text-sm text-muted-foreground">{c.text}</p>
+            <p className="text-sm font-semibold">{card.title}</p>
+            <p className="mt-1.5 text-sm text-muted-foreground">{card.text}</p>
           </Link>
         ))}
       </div>
@@ -88,10 +90,10 @@ function Accueil() {
           {athleteResults
             .slice(-6)
             .reverse()
-            .map((r) => (
-              <li key={r.id} className="flex items-center justify-between py-2">
-                <span className="text-muted-foreground">{r.axis}</span>
-                <span className="font-medium tabular-nums">{r.score}</span>
+            .map((result) => (
+              <li key={result.id} className="flex items-center justify-between py-2">
+                <span className="text-muted-foreground">{result.axis}</span>
+                <span className="font-medium tabular-nums">{result.score}</span>
               </li>
             ))}
         </ul>
