@@ -57,10 +57,23 @@ const AXIS_ICONS: Record<Axis, LucideIcon> = {
 };
 
 const RANK_STYLES = [
-  "border-amber-300 bg-amber-100 text-amber-700",
-  "border-slate-300 bg-slate-100 text-slate-600",
-  "border-orange-200 bg-orange-100 text-orange-700",
+  "border-amber-300 bg-amber-100 text-amber-700 shadow-amber-200/70",
+  "border-slate-300 bg-slate-100 text-slate-600 shadow-slate-200/80",
+  "border-orange-300 bg-orange-100 text-orange-700 shadow-orange-200/70",
 ];
+
+const AXIS_HEADER_STYLES: Record<Axis, string> = {
+  "Dissociation motrice": "from-[#073b63] to-[#137eab]",
+  "Précision motrice": "from-[#064f71] to-[#1aa6c8]",
+  "Vitesse motrice / CPS": "from-[#08274d] to-[#0f5f9b]",
+  "Mémoire billard": "from-[#24406f] to-[#5a77b7]",
+  "Suivi visuel multi-objets": "from-[#006b82] to-[#26abc2]",
+  "Captation information visuelle": "from-[#087660] to-[#20a871]",
+  "Vision périphérique": "from-[#0b4b8d] to-[#0aa0c4]",
+  Attention: "from-[#9f161d] to-[#d33b36]",
+  Inhibition: "from-[#0f5132] to-[#2aa658]",
+  "Temps perception / traitement / décision / réaction": "from-[#8a5b00] to-[#d8aa16]",
+};
 
 interface TopEntry {
   athlete: Athlete;
@@ -112,25 +125,26 @@ function Accueil() {
 
   return (
     <div className="space-y-5">
-      <section className="overflow-hidden rounded-lg border border-border bg-white shadow-[var(--shadow-card)]">
-        <div className="bg-[#071b3d] px-6 py-4 text-center text-white">
+      <section className="overflow-hidden rounded-lg border border-cyan-100 bg-white shadow-[var(--shadow-card)]">
+        <div className="bg-[linear-gradient(100deg,#061b3c_0%,#083c68_44%,#167fa9_100%)] px-6 py-5 text-center text-white">
           <p className="text-2xl font-semibold uppercase tracking-[0.18em]">
             Top performances
           </p>
         </div>
-        <div className="border-b border-border px-6 py-3 text-center">
-          <p className="text-sm font-medium text-foreground">
+        <div className="h-1 bg-[linear-gradient(90deg,#0a3b66_0%,#1d8fbd_38%,#f3c400_58%,#1fa64a_76%,#c60018_100%)]" />
+        <div className="border-b border-cyan-100 bg-cyan-50/40 px-6 py-3 text-center">
+          <p className="text-sm font-semibold text-[#08274d]">
             Cabinet Neuro-Cognitif V. Rumeau
           </p>
         </div>
 
-        <div className="grid gap-x-7 gap-y-7 p-5 sm:p-6 lg:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-x-7 gap-y-7 bg-[linear-gradient(180deg,#ffffff_0%,#f7fcff_100%)] p-5 sm:p-6 lg:grid-cols-2 xl:grid-cols-3">
           {topBoards.map(({ axis, entries }) => (
             <PerformancePanel key={axis} axis={axis} entries={entries} />
           ))}
         </div>
 
-        <div className="flex flex-col gap-4 border-t border-border bg-slate-50 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-4 border-t border-cyan-100 bg-[linear-gradient(90deg,#f0fbff_0%,#fffdf3_55%,#fff4f5_100%)] px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
             <img
               src="/logo.jpeg"
@@ -163,9 +177,24 @@ function Accueil() {
       </section>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <MiniStat icon={Users} label="Sportifs suivis" value={athletes.length} />
-        <MiniStat icon={ClipboardList} label="Résultats enregistrés" value={results.length} />
-        <MiniStat icon={Trophy} label="Axes classés" value={AXES.length} />
+        <MiniStat
+          icon={Users}
+          label="Sportifs suivis"
+          value={athletes.length}
+          color="bg-cyan-100 text-cyan-800"
+        />
+        <MiniStat
+          icon={ClipboardList}
+          label="Résultats enregistrés"
+          value={results.length}
+          color="bg-red-100 text-red-700"
+        />
+        <MiniStat
+          icon={Trophy}
+          label="Axes classés"
+          value={AXES.length}
+          color="bg-amber-100 text-amber-700"
+        />
       </div>
     </div>
   );
@@ -177,7 +206,9 @@ function PerformancePanel({ axis, entries }: { axis: Axis; entries: TopEntry[] }
 
   return (
     <article className="min-w-0">
-      <div className="flex items-center justify-between border-b-2 border-[#071b3d] bg-[#073b63] px-3 py-1.5 text-white">
+      <div
+        className={`flex items-center justify-between border-b-2 border-[#071b3d] bg-gradient-to-r px-3 py-1.5 text-white ${AXIS_HEADER_STYLES[axis]}`}
+      >
         <h2 className="truncate text-sm font-semibold italic">{AXIS_SHORT[axis]}</h2>
         <Icon className="h-4 w-4 shrink-0 text-cyan-100" />
       </div>
@@ -191,7 +222,7 @@ function PerformancePanel({ axis, entries }: { axis: Axis; entries: TopEntry[] }
               className="grid grid-cols-[32px_minmax(0,1fr)_44px] items-center gap-2 py-2"
             >
               <span
-                className={`grid h-7 w-7 place-items-center rounded-full border ${RANK_STYLES[rank]}`}
+                className={`grid h-7 w-7 place-items-center rounded-full border shadow-sm ${RANK_STYLES[rank]}`}
                 title={`Rang ${rank + 1}`}
               >
                 <Medal className="h-4 w-4" />
@@ -215,7 +246,7 @@ function PerformancePanel({ axis, entries }: { axis: Axis; entries: TopEntry[] }
                 </div>
               )}
 
-              <span className="text-right text-lg font-semibold tabular-nums text-red-700">
+              <span className="text-right text-lg font-semibold tabular-nums text-[#c60018]">
                 {entry?.score ?? "-"}
               </span>
             </div>
@@ -230,14 +261,16 @@ function MiniStat({
   icon: Icon,
   label,
   value,
+  color,
 }: {
   icon: LucideIcon;
   label: string;
   value: number;
+  color: string;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-[var(--shadow-card)]">
-      <span className="grid h-9 w-9 place-items-center rounded-md bg-primary/10 text-primary">
+    <div className="flex items-center gap-3 rounded-lg border border-cyan-100 bg-white px-4 py-3 shadow-[var(--shadow-card)]">
+      <span className={`grid h-9 w-9 place-items-center rounded-md ${color}`}>
         <Icon className="h-4 w-4" />
       </span>
       <div>

@@ -63,31 +63,31 @@
 
 :root {
   --radius: 0.5rem;
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.16 0 0);
+  --background: oklch(0.975 0.012 232);
+  --foreground: oklch(0.17 0.035 250);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.16 0 0);
+  --card-foreground: oklch(0.17 0.035 250);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.16 0 0);
-  /* Rouge profond institutionnel */
-  --primary: oklch(0.45 0.175 26);
+  --popover-foreground: oklch(0.17 0.035 250);
+  /* Bleu profond du logo, avec le rouge en accent ponctuel dans l'UI. */
+  --primary: oklch(0.36 0.11 245);
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.962 0 0);
-  --secondary-foreground: oklch(0.2 0 0);
-  --muted: oklch(0.965 0 0);
-  --muted-foreground: oklch(0.5 0 0);
-  --accent: oklch(0.955 0 0);
-  --accent-foreground: oklch(0.2 0 0);
+  --secondary: oklch(0.96 0.022 218);
+  --secondary-foreground: oklch(0.24 0.055 245);
+  --muted: oklch(0.955 0.018 228);
+  --muted-foreground: oklch(0.48 0.035 245);
+  --accent: oklch(0.94 0.04 206);
+  --accent-foreground: oklch(0.22 0.075 240);
   --destructive: oklch(0.55 0.2 27);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.915 0 0);
-  --input: oklch(0.915 0 0);
-  --ring: oklch(0.45 0.175 26);
-  --chart-1: oklch(0.45 0.175 26);
-  --chart-2: oklch(0.35 0 0);
-  --chart-3: oklch(0.62 0 0);
-  --chart-4: oklch(0.55 0.06 250);
-  --chart-5: oklch(0.75 0.02 26);
+  --border: oklch(0.89 0.018 230);
+  --input: oklch(0.89 0.018 230);
+  --ring: oklch(0.58 0.12 220);
+  --chart-1: oklch(0.36 0.11 245);
+  --chart-2: oklch(0.64 0.15 205);
+  --chart-3: oklch(0.58 0.19 28);
+  --chart-4: oklch(0.78 0.15 92);
+  --chart-5: oklch(0.58 0.16 145);
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.2 0 0);
   --sidebar-primary: oklch(0.45 0.175 26);
@@ -96,7 +96,7 @@
   --sidebar-accent-foreground: oklch(0.2 0 0);
   --sidebar-border: oklch(0.915 0 0);
   --sidebar-ring: oklch(0.45 0.175 26);
-  --shadow-card: 0 1px 2px oklch(0 0 0 / 6%), 0 1px 3px oklch(0 0 0 / 4%);
+  --shadow-card: 0 1px 2px oklch(0.2 0.04 245 / 8%), 0 10px 30px oklch(0.2 0.04 245 / 5%);
 }
 
 
@@ -141,7 +141,10 @@
   }
 
   body {
-    background-color: var(--color-background);
+    background:
+      radial-gradient(circle at 8% 0%, oklch(0.94 0.06 205 / 55%), transparent 28rem),
+      radial-gradient(circle at 92% 4%, oklch(0.96 0.07 92 / 38%), transparent 24rem),
+      linear-gradient(180deg, oklch(0.99 0.006 220), var(--color-background));
     color: var(--color-foreground);
   }
 }
