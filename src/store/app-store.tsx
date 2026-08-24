@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -16,18 +17,89 @@ interface AppStore {
   selectedAthleteId: string;
   selectedAthlete: Athlete;
   selectAthlete: (id: string) => void;
+  addAthlete: () => void;
   updateAthlete: (id: string, patch: Partial<Athlete>) => void;
   addResults: (results: Omit<Result, "id" | "date">[]) => void;
 }
 
 const StoreContext = createContext<AppStore | null>(null);
+const STORAGE_KEY = "sport-mind-lab-store";
+
+interface PersistedStore {
+  athletes: Athlete[];
+  results: Result[];
+  selectedAthleteId: string;
+}
+
+function createEmptyAthlete(): Athlete {
+  return {
+    id: `athlete-${Date.now()}`,
+    nom: "",
+    prenom: "",
+    age: 0,
+    sexe: "Homme",
+    discipline: "",
+    poste: "",
+    pathologie: "",
+    niveau: "",
+  };
+}
+
+function loadPersistedStore(): PersistedStore {
+  if (typeof window === "undefined") {
+    return {
+      athletes: INITIAL_ATHLETES,
+      results: INITIAL_RESULTS,
+      selectedAthleteId: INITIAL_ATHLETES[0].id,
+    };
+  }
+
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) throw new Error("No persisted store");
+    const parsed = JSON.parse(raw) as Partial<PersistedStore>;
+    const athletes = parsed.athletes?.length ? parsed.athletes : INITIAL_ATHLETES;
+    const selectedAthleteId =
+      parsed.selectedAthleteId && athletes.some((a) => a.id === parsed.selectedAthleteId)
+        ? parsed.selectedAthleteId
+        : athletes[0].id;
+
+    return {
+      athletes,
+      results: parsed.results ?? INITIAL_RESULTS,
+      selectedAthleteId,
+    };
+  } catch {
+    return {
+      athletes: INITIAL_ATHLETES,
+      results: INITIAL_RESULTS,
+      selectedAthleteId: INITIAL_ATHLETES[0].id,
+    };
+  }
+}
 
 export function AppStoreProvider({ children }: { children: ReactNode }) {
-  const [athletes, setAthletes] = useState<Athlete[]>(INITIAL_ATHLETES);
-  const [results, setResults] = useState<Result[]>(INITIAL_RESULTS);
-  const [selectedAthleteId, setSelectedAthleteId] = useState(INITIAL_ATHLETES[0].id);
+  const initialStore = useMemo(loadPersistedStore, []);
+  const [athletes, setAthletes] = useState<Athlete[]>(initialStore.athletes);
+  const [results, setResults] = useState<Result[]>(initialStore.results);
+  const [selectedAthleteId, setSelectedAthleteId] = useState(
+    initialStore.selectedAthleteId,
+  );
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ athletes, results, selectedAthleteId }),
+    );
+  }, [athletes, results, selectedAthleteId]);
 
   const selectAthlete = useCallback((id: string) => setSelectedAthleteId(id), []);
+
+  const addAthlete = useCallback(() => {
+    const athlete = createEmptyAthlete();
+    setAthletes((prev) => [...prev, athlete]);
+    setSelectedAthleteId(athlete.id);
+  }, []);
 
   const updateAthlete = useCallback((id: string, patch: Partial<Athlete>) => {
     setAthletes((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch } : a)));
@@ -54,10 +126,19 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       selectedAthleteId,
       selectedAthlete,
       selectAthlete,
+      addAthlete,
       updateAthlete,
       addResults,
     };
-  }, [athletes, results, selectedAthleteId, selectAthlete, updateAthlete, addResults]);
+  }, [
+    athletes,
+    results,
+    selectedAthleteId,
+    selectAthlete,
+    addAthlete,
+    updateAthlete,
+    addResults,
+  ]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

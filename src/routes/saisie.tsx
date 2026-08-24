@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
@@ -11,6 +11,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAppStore } from "@/store/app-store";
 import { MANUAL_SCORE_AXES } from "@/lib/test-definitions";
 import { fullName, type Axis } from "@/lib/domain";
+
+function emptyManualScores() {
+  return Object.fromEntries(MANUAL_SCORE_AXES.map((axis) => [axis, ""])) as Record<
+    Axis,
+    string
+  >;
+}
 
 export const Route = createFileRoute("/saisie")({
   head: () => ({
@@ -29,14 +36,16 @@ export const Route = createFileRoute("/saisie")({
 function Saisie() {
   const { selectedAthlete, addResults } = useAppStore();
   const selectedName = fullName(selectedAthlete).trim() || "Nouveau sportif";
-  const [scores, setScores] = useState<Record<Axis, string>>(
-    Object.fromEntries(MANUAL_SCORE_AXES.map((axis) => [axis, ""])) as Record<
-      Axis,
-      string
-    >,
-  );
+
+  const [scores, setScores] = useState<Record<Axis, string>>(emptyManualScores);
   const [mode, setMode] = useState("Cabinet");
   const [commentaire, setCommentaire] = useState("");
+
+  useEffect(() => {
+    setScores(emptyManualScores());
+    setMode("Cabinet");
+    setCommentaire("");
+  }, [selectedAthlete.id]);
 
   const save = () => {
     const entries = MANUAL_SCORE_AXES.flatMap((axis) => {
@@ -64,12 +73,7 @@ function Saisie() {
 
     addResults(entries);
     toast.success(`${entries.length} score(s) enregistré(s)`);
-    setScores(
-      Object.fromEntries(MANUAL_SCORE_AXES.map((axis) => [axis, ""])) as Record<
-        Axis,
-        string
-      >,
-    );
+    setScores(emptyManualScores());
     setCommentaire("");
   };
 

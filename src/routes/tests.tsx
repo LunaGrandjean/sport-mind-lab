@@ -112,8 +112,8 @@ function Tests() {
       </div>
 
       <Dialog open={active !== null} onOpenChange={(open) => !open && setActive(null)}>
-        <DialogContent className="max-h-[92vh] max-w-6xl overflow-hidden p-0">
-          <DialogHeader className="border-b border-border px-5 py-4">
+        <DialogContent className="flex max-h-[92vh] max-w-6xl flex-col gap-0 overflow-hidden p-0">
+          <DialogHeader className="shrink-0 border-b border-border px-5 py-4">
             <DialogTitle>{active?.title}</DialogTitle>
             <DialogDescription>
               Le test HTML est chargé dans l'application. Le panneau sons flottant peut
@@ -121,19 +121,19 @@ function Tests() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid min-h-[70vh] gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="min-h-[60vh] bg-muted">
+          <div className="grid min-h-0 flex-1 gap-0 overflow-hidden lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="min-h-[60vh] overflow-hidden bg-muted lg:min-h-0">
               {active && (
                 <iframe
                   title={active.title}
                   src={toolUrlWithAthlete(active.htmlPath, selectedAthlete)}
-                  className="h-full min-h-[70vh] w-full border-0 bg-white"
+                  className="h-[68vh] w-full border-0 bg-white lg:h-full"
                   allow="fullscreen; autoplay"
                 />
               )}
             </div>
 
-            <aside className="space-y-4 border-l border-border bg-card p-5">
+            <aside className="max-h-[68vh] space-y-4 overflow-y-auto border-l border-border bg-card p-5 lg:max-h-none">
               <div>
                 <p className="text-sm font-semibold">Enregistrement radar</p>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -182,7 +182,7 @@ function Tests() {
             </aside>
           </div>
 
-          <DialogFooter className="border-t border-border px-5 py-4">
+          <DialogFooter className="shrink-0 border-t border-border px-5 py-4">
             <Button variant="outline" onClick={() => setActive(null)}>
               Fermer
             </Button>

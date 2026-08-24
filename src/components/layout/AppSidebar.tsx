@@ -5,12 +5,14 @@ import {
   Activity,
   Dumbbell,
   PencilLine,
+  UserPlus,
 } from "lucide-react";
 
 import { useAppStore } from "@/store/app-store";
 import { fullName } from "@/lib/domain";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -28,7 +30,8 @@ const NAV = [
 ] as const;
 
 export function AppSidebar() {
-  const { athletes, selectedAthlete, selectAthlete, updateAthlete } = useAppStore();
+  const { athletes, selectedAthlete, selectAthlete, addAthlete, updateAthlete } =
+    useAppStore();
 
   const field = (
     key: "nom" | "prenom" | "age" | "discipline" | "poste" | "pathologie",
@@ -85,18 +88,30 @@ export function AppSidebar() {
           <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             Profil sportif
           </Label>
-          <Select value={selectedAthlete.id} onValueChange={selectAthlete}>
-            <SelectTrigger className="h-9 w-full text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {athletes.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  {fullName(a).trim() || "Nouveau sportif"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            <Select value={selectedAthlete.id} onValueChange={selectAthlete}>
+              <SelectTrigger className="h-9 min-w-0 flex-1 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {athletes.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {fullName(a).trim() || "Nouveau sportif"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              onClick={addAthlete}
+              title="Nouveau sportif"
+            >
+              <UserPlus className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
