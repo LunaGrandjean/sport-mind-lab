@@ -7,7 +7,6 @@ import {
   PencilLine,
 } from "lucide-react";
 
-import logo from "@/assets/logo.jpeg.asset.json";
 import { useAppStore } from "@/store/app-store";
 import { fullName } from "@/lib/domain";
 import { Label } from "@/components/ui/label";
@@ -56,7 +55,7 @@ export function AppSidebar() {
   return (
     <aside className="flex w-72 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
       <div className="flex items-center gap-3 border-b border-sidebar-border px-4 py-4">
-        <img src={logo.url} alt="Logo du cabinet" className="h-9 w-9 object-contain" />
+        <img src="/logo.jpeg" alt="Logo du cabinet" className="h-9 w-9 object-contain" />
         <div className="leading-tight">
           <p className="text-sm font-semibold text-sidebar-foreground">
             Neurocognitive
@@ -93,7 +92,7 @@ export function AppSidebar() {
             <SelectContent>
               {athletes.map((a) => (
                 <SelectItem key={a.id} value={a.id}>
-                  {fullName(a)}
+                  {fullName(a).trim() || "Nouveau sportif"}
                 </SelectItem>
               ))}
             </SelectContent>

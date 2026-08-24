@@ -24,6 +24,10 @@ export const Route = createFileRoute("/")({
 function Accueil() {
   const { athletes, results, selectedAthlete } = useAppStore();
   const athleteResults = results.filter((r) => r.athleteId === selectedAthlete.id);
+  const profileLabel = fullName(selectedAthlete).trim() || "Nouveau sportif";
+  const profileMeta = [selectedAthlete.discipline, selectedAthlete.poste]
+    .filter(Boolean)
+    .join(" · ");
 
   const cards = [
     {
@@ -52,7 +56,7 @@ function Accueil() {
     <div className="space-y-6">
       <PageHeader
         title="Accueil"
-        description={`Profil actif : ${fullName(selectedAthlete)} · ${selectedAthlete.discipline} · ${selectedAthlete.poste}`}
+        description={`Profil actif : ${profileLabel}${profileMeta ? ` · ${profileMeta}` : ""}`}
         actions={
           <Button asChild>
             <Link to="/tests">Lancer un test</Link>

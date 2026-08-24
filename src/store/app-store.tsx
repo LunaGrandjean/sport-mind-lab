@@ -8,7 +8,7 @@ import {
 } from "react";
 
 import type { Athlete, Result } from "@/lib/domain";
-import { MOCK_ATHLETES, MOCK_RESULTS } from "@/lib/mock-data";
+import { INITIAL_ATHLETES, INITIAL_RESULTS } from "@/lib/mock-data";
 
 interface AppStore {
   athletes: Athlete[];
@@ -22,14 +22,10 @@ interface AppStore {
 
 const StoreContext = createContext<AppStore | null>(null);
 
-/**
- * Source de vérité front. Les mocks peuvent être remplacés par des appels
- * serveur (loader / server functions) sans changer l'API du store.
- */
 export function AppStoreProvider({ children }: { children: ReactNode }) {
-  const [athletes, setAthletes] = useState<Athlete[]>(MOCK_ATHLETES);
-  const [results, setResults] = useState<Result[]>(MOCK_RESULTS);
-  const [selectedAthleteId, setSelectedAthleteId] = useState(MOCK_ATHLETES[0].id);
+  const [athletes, setAthletes] = useState<Athlete[]>(INITIAL_ATHLETES);
+  const [results, setResults] = useState<Result[]>(INITIAL_RESULTS);
+  const [selectedAthleteId, setSelectedAthleteId] = useState(INITIAL_ATHLETES[0].id);
 
   const selectAthlete = useCallback((id: string) => setSelectedAthleteId(id), []);
 
@@ -41,9 +37,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const date = new Date().toISOString();
     setResults((prev) => [
       ...prev,
-      ...entries.map((e, i) => ({
-        ...e,
-        id: `r-${Date.now()}-${i}`,
+      ...entries.map((entry, index) => ({
+        ...entry,
+        id: `r-${Date.now()}-${index}`,
         date,
       })),
     ]);

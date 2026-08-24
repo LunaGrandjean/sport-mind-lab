@@ -28,6 +28,7 @@ export const Route = createFileRoute("/saisie")({
 
 function Saisie() {
   const { selectedAthlete, addResults } = useAppStore();
+  const selectedName = fullName(selectedAthlete).trim() || "Nouveau sportif";
   const [scores, setScores] = useState<Record<Axis, string>>(
     Object.fromEntries(MANUAL_SCORE_AXES.map((axis) => [axis, ""])) as Record<
       Axis,
@@ -76,7 +77,7 @@ function Saisie() {
     <div className="space-y-6">
       <PageHeader
         title="Saisie manuelle"
-        description={`Scores cabinet pour ${fullName(selectedAthlete)} : haltères, pods, attention, inhibition et temps de traitement.`}
+        description={`Scores cabinet pour ${selectedName} : haltères, pods, attention, inhibition et temps de traitement.`}
         actions={
           <Button asChild variant="outline">
             <Link to="/resultats">Voir le dashboard</Link>

@@ -32,11 +32,6 @@ export const Route = createFileRoute("/resultats")({
         content:
           "Diagramme radar 10 axes, statistiques du cabinet, comparaison par groupe et meilleurs scores du sportif.",
       },
-      { property: "og:title", content: "Résultats & dashboard neurocognitif" },
-      {
-        property: "og:description",
-        content: "Radar 10 axes, comparaisons par groupe et meilleurs scores.",
-      },
     ],
   }),
   component: Resultats,
@@ -45,6 +40,10 @@ export const Route = createFileRoute("/resultats")({
 function Resultats() {
   const { athletes, results, selectedAthlete } = useAppStore();
   const [group, setGroup] = useState<GroupKey>("tous");
+  const selectedName = fullName(selectedAthlete).trim() || "Nouveau sportif";
+  const profileMeta = [selectedAthlete.discipline, selectedAthlete.niveau]
+    .filter(Boolean)
+    .join(" · ");
 
   const athleteResults = useMemo(
     () => results.filter((r) => r.athleteId === selectedAthlete.id),
@@ -84,7 +83,7 @@ function Resultats() {
     <div className="space-y-6">
       <PageHeader
         title="Résultats / Dashboard"
-        description={`${fullName(selectedAthlete)} · ${selectedAthlete.discipline} · ${selectedAthlete.niveau}`}
+        description={`${selectedName}${profileMeta ? ` · ${profileMeta}` : ""}`}
         actions={
           <div className="w-64">
             <Select value={group} onValueChange={(v) => setGroup(v as GroupKey)}>
@@ -92,9 +91,9 @@ function Resultats() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(GROUP_LABELS) as GroupKey[]).map((k) => (
-                  <SelectItem key={k} value={k}>
-                    {GROUP_LABELS[k]}
+                {(Object.keys(GROUP_LABELS) as GroupKey[]).map((key) => (
+                  <SelectItem key={key} value={key}>
+                    {GROUP_LABELS[key]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -124,7 +123,7 @@ function Resultats() {
           <h2 className="text-sm font-semibold">Profil neurocognitif — 10 axes</h2>
           <RadarPerformance
             data={radarData}
-            athleteName={fullName(selectedAthlete)}
+            athleteName={selectedName}
             groupLabel={GROUP_LABELS[group]}
           />
         </section>
@@ -132,20 +131,26 @@ function Resultats() {
         <section className="rounded-lg border border-border bg-card p-5 shadow-[var(--shadow-card)]">
           <h2 className="text-sm font-semibold">Meilleurs scores</h2>
           <div className="mt-4 space-y-3">
-            {best.map((b) => (
-              <div key={b.axis}>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{b.axis}</span>
-                  <span className="font-medium tabular-nums">{b.athlete}</span>
+            {best.length ? (
+              best.map((item) => (
+                <div key={item.axis}>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{item.axis}</span>
+                    <span className="font-medium tabular-nums">{item.athlete}</span>
+                  </div>
+                  <div className="mt-1 h-1.5 w-full rounded-full bg-muted">
+                    <div
+                      className="h-1.5 rounded-full bg-primary"
+                      style={{ width: `${item.athlete ?? 0}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="mt-1 h-1.5 w-full rounded-full bg-muted">
-                  <div
-                    className="h-1.5 rounded-full bg-primary"
-                    style={{ width: `${b.athlete ?? 0}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Aucun score enregistré pour le moment.
+              </p>
+            )}
           </div>
         </section>
       </div>
@@ -161,22 +166,24 @@ function Resultats() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {radarData.map((d) => {
+            {radarData.map((item) => {
               const delta =
-                d.athlete !== null && d.group !== null ? d.athlete - d.group : null;
+                item.athlete !== null && item.group !== null
+                  ? item.athlete - item.group
+                  : null;
               return (
-                <tr key={d.axis}>
-                  <td className="px-4 py-2.5">{d.axis}</td>
-                  <td className="px-4 py-2.5 tabular-nums">{d.athlete ?? "—"}</td>
+                <tr key={item.axis}>
+                  <td className="px-4 py-2.5">{item.axis}</td>
+                  <td className="px-4 py-2.5 tabular-nums">{item.athlete ?? "-"}</td>
                   <td className="px-4 py-2.5 tabular-nums text-muted-foreground">
-                    {d.group ?? "—"}
+                    {item.group ?? "-"}
                   </td>
                   <td
                     className={`px-4 py-2.5 tabular-nums ${
                       delta !== null && delta < 0 ? "text-primary" : "text-foreground"
                     }`}
                   >
-                    {delta === null ? "—" : `${delta > 0 ? "+" : ""}${delta}`}
+                    {delta === null ? "-" : `${delta > 0 ? "+" : ""}${delta}`}
                   </td>
                 </tr>
               );
