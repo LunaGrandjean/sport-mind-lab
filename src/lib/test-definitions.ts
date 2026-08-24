@@ -1,4 +1,5 @@
 import type { Axis } from "@/lib/domain";
+import type { Athlete } from "@/lib/domain";
 
 export interface HtmlTool {
   id: string;
@@ -149,4 +150,13 @@ export const MANUAL_SCORE_AXES: Axis[] = [
 
 export function findTool(id: string) {
   return [...HTML_TESTS, ...PRACTICE_APPS].find((tool) => tool.id === id);
+}
+
+export function toolUrlWithAthlete(path: string, athlete: Athlete) {
+  const params = new URLSearchParams({
+    nom: athlete.nom || "Session",
+    prenom: athlete.prenom || "Sportif",
+    age: athlete.age ? String(athlete.age) : "",
+  });
+  return `${path}?${params.toString()}`;
 }

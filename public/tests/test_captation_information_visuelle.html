@@ -80,9 +80,9 @@ input, button, select {
 <!-- ===== PAGE 1 ===== -->
 <div id="setup">
     <h2>Test de discrimination visuelle</h2>
-    <input id="prenom" placeholder="Prénom"><br>
-    <input id="nom" placeholder="Nom"><br>
-    <input id="age" placeholder="Âge"><br>
+    <input id="prenom" type="hidden" value="Sportif">
+    <input id="nom" type="hidden" value="Session">
+    <input id="age" type="hidden" value="0">
 
     <select id="mode">
         <option value="classic">Mode cercles</option>
@@ -314,5 +314,18 @@ function generatePDF(){
 }
 </script>
 
+<script>
+function hydrateAthleteFromSession(){
+  const params = new URLSearchParams(window.location.search);
+  const set = (id, fallback) => {
+    const field = document.getElementById(id);
+    if (field) field.value = params.get(id) || fallback;
+  };
+  set("prenom", "Sportif");
+  set("nom", "Session");
+  set("age", "0");
+}
+hydrateAthleteFromSession();
+</script>
 </body>
 </html>

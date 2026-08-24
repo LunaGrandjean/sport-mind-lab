@@ -26,9 +26,9 @@
 <section id="p1" class="page active">
   <div class="card">
     <h1>NeuroCog Ballons</h1>
-    <label>Nom</label><input id="nom">
-    <label>Prénom</label><input id="prenom">
-    <label>Âge</label><input id="age" type="number">
+    <input id="nom" type="hidden" value="Session">
+    <input id="prenom" type="hidden" value="Sportif">
+    <input id="age" type="hidden" value="0">
 
     <label>Niveau de départ</label>
     <select id="startLevel">
@@ -385,6 +385,19 @@ showPage = function(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
+</script>
+<script>
+function hydrateAthleteFromSession(){
+  const params = new URLSearchParams(window.location.search);
+  const set = (id, fallback) => {
+    const field = document.getElementById(id);
+    if (field) field.value = params.get(id) || fallback;
+  };
+  set("nom", "Session");
+  set("prenom", "Sportif");
+  set("age", "0");
+}
+hydrateAthleteFromSession();
 </script>
 </body>
 </html>

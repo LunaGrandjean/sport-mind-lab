@@ -40,9 +40,9 @@ box-shadow:0 10px 25px rgba(0,0,0,0.1);text-align:center;}
 <div id="pagePatient" class="page active">
 <div class="card">
 <h1>Test de vision périphérique</h1>
-<input id="prenom" placeholder="Prénom">
-<input id="nom" placeholder="Nom">
-<input id="age" type="number" placeholder="Âge">
+<input id="prenom" type="hidden" value="Sportif">
+<input id="nom" type="hidden" value="Session">
+<input id="age" type="hidden" value="0">
 <button onclick="goCountdown()">Démarrer</button>
 </div>
 </div>
@@ -218,5 +218,15 @@ function restartSame(){goCountdown();}
 function restartOther(){location.reload();}
 </script>
 
+<script>
+function hydrateAthleteFromSession(){
+const params=new URLSearchParams(window.location.search);
+const set=(id,fallback)=>{const field=document.getElementById(id);if(field)field.value=params.get(id)||fallback;};
+set("prenom","Sportif");
+set("nom","Session");
+set("age","0");
+}
+hydrateAthleteFromSession();
+</script>
 </body>
 </html>

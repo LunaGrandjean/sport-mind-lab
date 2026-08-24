@@ -70,9 +70,9 @@ label{cursor:pointer}
 <div class="page active" id="p1">
 <h1>Test de suivi visuel</h1>
 <div class="formBox">
-<input id="nom" placeholder="Nom">
-<input id="prenom" placeholder="Prénom">
-<input id="age" type="number" placeholder="Âge">
+<input id="nom" type="hidden" value="Session">
+<input id="prenom" type="hidden" value="Sportif">
+<input id="age" type="hidden" value="0">
 <button onclick="startTest()">Démarrer</button>
 </div>
 </div>
@@ -289,6 +289,16 @@ reportBox.innerHTML = `
 function exportPDF(){window.print()}
 function restart(){show("p2");level=1;errors=0;reactionTimes=[];startLevel()}
 function menu(){location.reload()}
+</script>
+<script>
+function hydrateAthleteFromSession(){
+const params=new URLSearchParams(window.location.search);
+const set=(id,fallback)=>{const field=document.getElementById(id);if(field)field.value=params.get(id)||fallback;};
+set("nom","Session");
+set("prenom","Sportif");
+set("age","0");
+}
+hydrateAthleteFromSession();
 </script>
 </body>
 </html>

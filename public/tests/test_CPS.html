@@ -91,14 +91,9 @@ button:hover {
 <div class="card" id="page1">
 <h1>Test de Vitesse Motrice</h1>
 
-<label>Nom</label>
-<input id="nom">
-
-<label>Prénom</label>
-<input id="prenom">
-
-<label>Âge</label>
-<input type="number" id="age">
+<input id="nom" type="hidden" value="Session">
+<input id="prenom" type="hidden" value="Sportif">
+<input id="age" type="hidden" value="0">
 
 <label>Durée du test</label>
 <select id="temps">
@@ -258,5 +253,18 @@ function downloadPDF() {
 }
 </script>
 
+<script>
+function hydrateAthleteFromSession(){
+  const params = new URLSearchParams(window.location.search);
+  const set = (id, fallback) => {
+    const field = document.getElementById(id);
+    if (field) field.value = params.get(id) || fallback;
+  };
+  set("nom", "Session");
+  set("prenom", "Sportif");
+  set("age", "0");
+}
+hydrateAthleteFromSession();
+</script>
 </body>
 </html>

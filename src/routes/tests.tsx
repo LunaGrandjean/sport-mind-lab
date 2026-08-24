@@ -17,7 +17,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppStore } from "@/store/app-store";
-import { HTML_TESTS, type HtmlTool } from "@/lib/test-definitions";
+import {
+  HTML_TESTS,
+  toolUrlWithAthlete,
+  type HtmlTool,
+} from "@/lib/test-definitions";
 
 export const Route = createFileRoute("/tests")({
   head: () => ({
@@ -122,7 +126,7 @@ function Tests() {
               {active && (
                 <iframe
                   title={active.title}
-                  src={active.htmlPath}
+                  src={toolUrlWithAthlete(active.htmlPath, selectedAthlete)}
                   className="h-full min-h-[70vh] w-full border-0 bg-white"
                   allow="fullscreen; autoplay"
                 />
@@ -165,7 +169,11 @@ function Tests() {
 
               {active && (
                 <Button asChild variant="outline" className="w-full gap-2">
-                  <a href={active.htmlPath} target="_blank" rel="noreferrer">
+                  <a
+                    href={toolUrlWithAthlete(active.htmlPath, selectedAthlete)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     <ExternalLink className="h-4 w-4" />
                     Ouvrir dans un onglet
                   </a>

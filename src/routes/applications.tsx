@@ -11,7 +11,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { PRACTICE_APPS, type HtmlTool } from "@/lib/test-definitions";
+import {
+  PRACTICE_APPS,
+  toolUrlWithAthlete,
+  type HtmlTool,
+} from "@/lib/test-definitions";
+import { useAppStore } from "@/store/app-store";
 
 export const Route = createFileRoute("/applications")({
   head: () => ({
@@ -28,6 +33,7 @@ export const Route = createFileRoute("/applications")({
 });
 
 function Applications() {
+  const { selectedAthlete } = useAppStore();
   const [active, setActive] = useState<HtmlTool | null>(null);
 
   return (
@@ -81,7 +87,11 @@ function Applications() {
               </div>
               {active && (
                 <Button asChild variant="outline" size="sm" className="gap-2">
-                  <a href={active.htmlPath} target="_blank" rel="noreferrer">
+                  <a
+                    href={toolUrlWithAthlete(active.htmlPath, selectedAthlete)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     <ExternalLink className="h-4 w-4" />
                     Onglet
                   </a>
@@ -92,7 +102,7 @@ function Applications() {
           {active && (
             <iframe
               title={active.title}
-              src={active.htmlPath}
+              src={toolUrlWithAthlete(active.htmlPath, selectedAthlete)}
               className="h-[75vh] w-full border-0 bg-white"
               allow="fullscreen; autoplay"
             />
