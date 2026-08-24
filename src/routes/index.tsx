@@ -6,6 +6,7 @@ import {
   ClipboardList,
   Eye,
   Hand,
+  Medal,
   MousePointer2,
   Radar as RadarIcon,
   Route as RouteIcon,
@@ -56,9 +57,9 @@ const AXIS_ICONS: Record<Axis, LucideIcon> = {
 };
 
 const RANK_STYLES = [
-  "border-amber-300 bg-amber-100 text-amber-800",
-  "border-slate-300 bg-slate-100 text-slate-700",
-  "border-red-200 bg-red-100 text-red-800",
+  "border-amber-300 bg-amber-100 text-amber-700",
+  "border-slate-300 bg-slate-100 text-slate-600",
+  "border-orange-200 bg-orange-100 text-orange-700",
 ];
 
 interface TopEntry {
@@ -190,9 +191,10 @@ function PerformancePanel({ axis, entries }: { axis: Axis; entries: TopEntry[] }
               className="grid grid-cols-[32px_minmax(0,1fr)_44px] items-center gap-2 py-2"
             >
               <span
-                className={`grid h-6 w-6 place-items-center rounded-full border text-[11px] font-bold ${RANK_STYLES[rank]}`}
+                className={`grid h-7 w-7 place-items-center rounded-full border ${RANK_STYLES[rank]}`}
+                title={`Rang ${rank + 1}`}
               >
-                {rank + 1}
+                <Medal className="h-4 w-4" />
               </span>
 
               {entry ? (

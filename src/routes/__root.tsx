@@ -118,9 +118,9 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppStoreProvider>
-        <div className="flex min-h-screen w-full bg-background text-foreground">
+        <div className="min-h-screen w-full bg-background text-foreground">
           <AppSidebar />
-          <main className="flex-1 overflow-x-hidden px-6 py-6 lg:px-8">
+          <main className="mx-auto w-full max-w-[1600px] overflow-x-hidden px-4 py-5 sm:px-6 lg:px-8">
             {/* Required: nested routes render here. */}
             <Outlet />
           </main>
