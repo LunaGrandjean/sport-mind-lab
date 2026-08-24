@@ -11,6 +11,11 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { AppStoreProvider } from "@/store/app-store";
+import { AppSidebar } from "@/components/layout/AppSidebar";
+import { SoundPanel } from "@/components/sound/SoundPanel";
+import { Toaster } from "@/components/ui/sonner";
+
 
 function NotFoundComponent() {
   return (
