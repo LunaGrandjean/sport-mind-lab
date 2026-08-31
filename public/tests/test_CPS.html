@@ -179,7 +179,6 @@ function finish() {
     results.style.display = "block";
 
     let cps = (clicks / duration).toFixed(2);
-    let cpsScore = Math.round((clicks / duration) * 60);
     let tier = duration / 3;
     let first = timeline.filter(p=>p.t<=tier).length;
     let last = timeline.filter(p=>p.t>=2*tier).length;
@@ -211,9 +210,8 @@ function finish() {
     <p>Temps : ${duration}s</p>
     <p>Clics : ${clicks}</p>
     <p>CPS moyen : ${cps}</p>
-    <p>Score CPS barème : ${cpsScore}</p>
     <p>Indice de fatigue : ${fatigue}</p>`;
-    window.SportMindLabResult?.(cpsScore, "Score CPS");
+    window.SportMindLabResult?.(clicks, "Clics");
 
     comparison.innerHTML = comparisonText;
 

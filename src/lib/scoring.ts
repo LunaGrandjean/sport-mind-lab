@@ -57,7 +57,7 @@ export const BAREMES = {
   cps: {
     id: "cps",
     label: "CPS",
-    rawLabel: "Score CPS barème (équivalent 60s)",
+    rawLabel: "Clics obtenus au test CPS",
     ranges: rangesFromBounds([
       [0, 25],
       [26, 50],
