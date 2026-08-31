@@ -9,6 +9,8 @@ import {
   Tooltip,
 } from "recharts";
 
+import { RADAR_MAX_SCORE } from "@/lib/scoring";
+
 export interface RadarDatum {
   axis: string;
   athlete: number | null;
@@ -35,7 +37,7 @@ export function RadarPerformance({
           />
           <PolarRadiusAxis
             angle={90}
-            domain={[0, 100]}
+            domain={[0, RADAR_MAX_SCORE]}
             tick={{ fill: "var(--muted-foreground)", fontSize: 10 }}
             axisLine={false}
           />

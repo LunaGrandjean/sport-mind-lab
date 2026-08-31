@@ -190,6 +190,7 @@ reportText.innerHTML=`
 Niveau atteint : ${level}<br>
 Temps apparition : ${Math.round(appearanceTime(level))} ms<br>
 Temps moyen réponse : ${avg} ms`;
+window.SportMindLabResult?.(level, "Niveau atteint");
 
 historyDiv=document.getElementById("history");
 historyDiv.innerHTML="<b>Historique :</b><br>";

@@ -247,7 +247,7 @@ function PerformancePanel({ axis, entries }: { axis: Axis; entries: TopEntry[] }
               )}
 
               <span className="text-right text-lg font-semibold tabular-nums text-[#c60018]">
-                {entry?.score ?? "-"}
+                {entry ? `${entry.score}/20` : "-"}
               </span>
             </div>
           );

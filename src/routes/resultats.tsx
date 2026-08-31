@@ -22,6 +22,7 @@ import {
   matchesGroup,
   type GroupKey,
 } from "@/lib/domain";
+import { RADAR_MAX_SCORE } from "@/lib/scoring";
 
 export const Route = createFileRoute("/resultats")({
   head: () => ({
@@ -120,7 +121,7 @@ function Resultats() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <section className="rounded-lg border border-border bg-card p-5 shadow-[var(--shadow-card)] lg:col-span-2">
-          <h2 className="text-sm font-semibold">Profil neurocognitif — 10 axes</h2>
+          <h2 className="text-sm font-semibold">Profil neurocognitif — 10 axes /20</h2>
           <RadarPerformance
             data={radarData}
             athleteName={selectedName}
@@ -136,12 +137,14 @@ function Resultats() {
                 <div key={item.axis}>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">{item.axis}</span>
-                    <span className="font-medium tabular-nums">{item.athlete}</span>
+                    <span className="font-medium tabular-nums">{item.athlete}/20</span>
                   </div>
                   <div className="mt-1 h-1.5 w-full rounded-full bg-muted">
                     <div
                       className="h-1.5 rounded-full bg-primary"
-                      style={{ width: `${item.athlete ?? 0}%` }}
+                      style={{
+                        width: `${((item.athlete ?? 0) / RADAR_MAX_SCORE) * 100}%`,
+                      }}
                     />
                   </div>
                 </div>
@@ -160,9 +163,9 @@ function Resultats() {
           <thead className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-medium">Axe</th>
-              <th className="px-4 py-3 font-medium">Score sportif</th>
-              <th className="px-4 py-3 font-medium">Moyenne groupe</th>
-              <th className="px-4 py-3 font-medium">Écart</th>
+              <th className="px-4 py-3 font-medium">Note sportif /20</th>
+              <th className="px-4 py-3 font-medium">Moyenne groupe /20</th>
+              <th className="px-4 py-3 font-medium">Écart /20</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -174,16 +177,18 @@ function Resultats() {
               return (
                 <tr key={item.axis}>
                   <td className="px-4 py-2.5">{item.axis}</td>
-                  <td className="px-4 py-2.5 tabular-nums">{item.athlete ?? "-"}</td>
+                  <td className="px-4 py-2.5 tabular-nums">
+                    {item.athlete === null ? "-" : `${item.athlete}/20`}
+                  </td>
                   <td className="px-4 py-2.5 tabular-nums text-muted-foreground">
-                    {item.group ?? "-"}
+                    {item.group === null ? "-" : `${item.group}/20`}
                   </td>
                   <td
                     className={`px-4 py-2.5 tabular-nums ${
                       delta !== null && delta < 0 ? "text-primary" : "text-foreground"
                     }`}
                   >
-                    {delta === null ? "-" : `${delta > 0 ? "+" : ""}${delta}`}
+                    {delta === null ? "-" : `${delta > 0 ? "+" : ""}${delta}/20`}
                   </td>
                 </tr>
               );

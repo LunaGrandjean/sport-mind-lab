@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useAppStore } from "@/store/app-store";
-import { MANUAL_SCORE_AXES } from "@/lib/test-definitions";
 import { fullName, type Axis } from "@/lib/domain";
+import { baremeForAxis, noteFromRaw } from "@/lib/scoring";
+import { MANUAL_SCORE_AXES } from "@/lib/test-definitions";
+import { useAppStore } from "@/store/app-store";
 
 function emptyManualScores() {
   return Object.fromEntries(MANUAL_SCORE_AXES.map((axis) => [axis, ""])) as Record<
@@ -22,11 +23,11 @@ function emptyManualScores() {
 export const Route = createFileRoute("/saisie")({
   head: () => ({
     meta: [
-      { title: "Saisie manuelle — scores neurocognitifs" },
+      { title: "Saisie manuelle - scores neurocognitifs" },
       {
         name: "description",
         content:
-          "Saisie des scores réalisés au cabinet avec haltères, pods ou protocoles externes.",
+          "Saisie des résultats bruts réalisés au cabinet avec conversion automatique en note /20.",
       },
     ],
   }),
@@ -37,27 +38,30 @@ function Saisie() {
   const { selectedAthlete, addResults } = useAppStore();
   const selectedName = fullName(selectedAthlete).trim() || "Nouveau sportif";
 
-  const [scores, setScores] = useState<Record<Axis, string>>(emptyManualScores);
+  const [rawScores, setRawScores] = useState<Record<Axis, string>>(emptyManualScores);
   const [mode, setMode] = useState("Cabinet");
   const [commentaire, setCommentaire] = useState("");
 
   useEffect(() => {
-    setScores(emptyManualScores());
+    setRawScores(emptyManualScores());
     setMode("Cabinet");
     setCommentaire("");
   }, [selectedAthlete.id]);
 
   const save = () => {
     const entries = MANUAL_SCORE_AXES.flatMap((axis) => {
-      const value = scores[axis];
+      const value = rawScores[axis];
       if (!value) return [];
-      const score = Math.max(0, Math.min(100, Number(value)));
-      if (Number.isNaN(score)) return [];
+      const rawScore = Number(value);
+      if (Number.isNaN(rawScore)) return [];
+      const note = noteFromRaw(axis, rawScore);
+      if (note === null) return [];
       return [
         {
           athleteId: selectedAthlete.id,
           axis,
-          score,
+          score: note,
+          rawScore,
           mode,
           niveau: selectedAthlete.niveau,
           commentaire,
@@ -67,13 +71,13 @@ function Saisie() {
     });
 
     if (!entries.length) {
-      toast.warning("Aucun score valide à enregistrer");
+      toast.warning("Aucun résultat brut valide à enregistrer");
       return;
     }
 
     addResults(entries);
-    toast.success(`${entries.length} score(s) enregistré(s)`);
-    setScores(emptyManualScores());
+    toast.success(`${entries.length} note(s) /20 enregistrée(s)`);
+    setRawScores(emptyManualScores());
     setCommentaire("");
   };
 
@@ -81,7 +85,7 @@ function Saisie() {
     <div className="space-y-6">
       <PageHeader
         title="Saisie manuelle"
-        description={`Scores cabinet pour ${selectedName} : haltères, pods, attention, inhibition et temps de traitement.`}
+        description={`Résultats bruts cabinet pour ${selectedName}. La note radar /20 est calculée automatiquement avec le barème.`}
         actions={
           <Button asChild variant="outline">
             <Link to="/resultats">Voir le dashboard</Link>
@@ -91,21 +95,38 @@ function Saisie() {
 
       <section className="rounded-lg border border-border bg-card p-5 shadow-[var(--shadow-card)]">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {MANUAL_SCORE_AXES.map((axis) => (
-            <div key={axis} className="space-y-2">
-              <Label>{axis}</Label>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                placeholder="Score 0-100"
-                value={scores[axis]}
-                onChange={(event) =>
-                  setScores((prev) => ({ ...prev, [axis]: event.target.value }))
-                }
-              />
-            </div>
-          ))}
+          {MANUAL_SCORE_AXES.map((axis) => {
+            const bareme = baremeForAxis(axis);
+            const rawScore = rawScores[axis];
+            const note = rawScore === "" ? null : noteFromRaw(axis, Number(rawScore));
+
+            return (
+              <div key={axis} className="space-y-2 rounded-md border border-border p-3">
+                <div>
+                  <Label>{axis}</Label>
+                  <p className="mt-1 text-xs text-muted-foreground">{bareme.label}</p>
+                </div>
+                <Input
+                  type="number"
+                  step="any"
+                  placeholder={bareme.rawLabel}
+                  value={rawScore}
+                  onChange={(event) =>
+                    setRawScores((prev) => ({
+                      ...prev,
+                      [axis]: event.target.value,
+                    }))
+                  }
+                />
+                <div className="flex items-center justify-between rounded-md bg-cyan-50 px-3 py-2 text-sm">
+                  <span className="text-cyan-900">Note radar</span>
+                  <span className="font-semibold tabular-nums text-primary">
+                    {note === null ? "-/20" : `${note}/20`}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         <div className="mt-5 grid gap-4 md:grid-cols-[260px_minmax(0,1fr)]">
@@ -126,7 +147,7 @@ function Saisie() {
         <div className="mt-5 flex justify-end">
           <Button className="gap-2" onClick={save}>
             <Save className="h-4 w-4" />
-            Enregistrer les scores
+            Enregistrer les notes /20
           </Button>
         </div>
       </section>

@@ -10,6 +10,7 @@ import {
 
 import type { Athlete, Result } from "@/lib/domain";
 import { INITIAL_ATHLETES, INITIAL_RESULTS } from "@/lib/mock-data";
+import { clampRadarScore, RADAR_MAX_SCORE } from "@/lib/scoring";
 
 interface AppStore {
   athletes: Athlete[];
@@ -64,9 +65,16 @@ function loadPersistedStore(): PersistedStore {
         ? parsed.selectedAthleteId
         : athletes[0].id;
 
+    const results = (parsed.results ?? INITIAL_RESULTS).map((result) => ({
+      ...result,
+      score: clampRadarScore(
+        result.score > RADAR_MAX_SCORE ? Math.round(result.score / 5) : result.score,
+      ),
+    }));
+
     return {
       athletes,
-      results: parsed.results ?? INITIAL_RESULTS,
+      results,
       selectedAthleteId,
     };
   } catch {

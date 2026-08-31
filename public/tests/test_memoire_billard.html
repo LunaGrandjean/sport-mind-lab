@@ -211,12 +211,14 @@ function validateAnswer() {
         if (level > maxLevel) {
             document.getElementById("message").innerText =
                 "🎉 Test terminé – niveau maximal atteint.";
+            window.SportMindLabResult?.(maxLevel, "Niveau atteint");
         } else {
             startLevel();
         }
     } else {
         document.getElementById("message").innerText =
             "❌ Erreur – niveau atteint : " + level;
+        window.SportMindLabResult?.(level, "Niveau atteint");
     }
 
     document.getElementById("userInput").disabled = false;

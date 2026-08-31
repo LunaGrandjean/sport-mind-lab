@@ -211,6 +211,7 @@ function finish() {
     <p>Clics : ${clicks}</p>
     <p>CPS moyen : ${cps}</p>
     <p>Indice de fatigue : ${fatigue}</p>`;
+    window.SportMindLabResult?.(clicks, "Clics");
 
     comparison.innerHTML = comparisonText;
 

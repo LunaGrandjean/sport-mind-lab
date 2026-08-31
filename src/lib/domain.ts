@@ -49,6 +49,7 @@ export interface Result {
   athleteId: string;
   axis: Axis;
   score: number;
+  rawScore?: number;
   mode: string;
   niveau: string;
   commentaire?: string;

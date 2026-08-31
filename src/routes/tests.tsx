@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { ExternalLink, Play, Save } from "lucide-react";
 import { toast } from "sonner";
@@ -16,21 +16,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useAppStore } from "@/store/app-store";
+import { baremeForAxis, noteFromRaw } from "@/lib/scoring";
 import {
   HTML_TESTS,
   toolUrlWithAthlete,
   type HtmlTool,
 } from "@/lib/test-definitions";
+import { useAppStore } from "@/store/app-store";
 
 export const Route = createFileRoute("/tests")({
   head: () => ({
     meta: [
-      { title: "Tests neurocognitifs — cabinet sportif" },
+      { title: "Tests neurocognitifs - cabinet sportif" },
       {
         name: "description",
         content:
-          "Batterie de tests neurocognitifs lançables avec score radar : CPS, captation visuelle, suivi multi-objets, vision périphérique, mémoire billard.",
+          "Batterie de tests neurocognitifs avec conversion automatique des résultats bruts en note radar /20.",
       },
     ],
   }),
@@ -40,36 +41,60 @@ export const Route = createFileRoute("/tests")({
 function Tests() {
   const { selectedAthlete, addResults } = useAppStore();
   const [active, setActive] = useState<HtmlTool | null>(null);
-  const [score, setScore] = useState("75");
+  const [rawScore, setRawScore] = useState("");
   const [mode, setMode] = useState("Standard");
   const [commentaire, setCommentaire] = useState("");
 
+  const activeBareme = active?.axis ? baremeForAxis(active.axis) : null;
+  const computedScore =
+    active?.axis && rawScore !== "" ? noteFromRaw(active.axis, Number(rawScore)) : null;
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type !== "sport-mind-lab:test-result") return;
+      setRawScore(String(event.data.rawScore));
+      toast.success(`${event.data.label ?? "Résultat"} détecté automatiquement`);
+    };
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
   const launch = (test: HtmlTool) => {
     setActive(test);
-    setScore("75");
+    setRawScore("");
     setMode("Standard");
     setCommentaire("");
   };
 
   const save = () => {
     if (!active?.axis) return;
-    const numericScore = Math.max(0, Math.min(100, Number(score)));
-    if (Number.isNaN(numericScore)) {
-      toast.error("Score invalide");
+    const numericRawScore = Number(rawScore);
+    if (rawScore === "" || Number.isNaN(numericRawScore)) {
+      toast.error("Résultat brut invalide");
       return;
     }
+
+    const note = noteFromRaw(active.axis, numericRawScore);
+    if (note === null) {
+      toast.error("Aucune note trouvée dans le barème pour ce résultat");
+      return;
+    }
+
     addResults([
       {
         athleteId: selectedAthlete.id,
         axis: active.axis,
-        score: numericScore,
+        score: note,
+        rawScore: numericRawScore,
         mode,
         niveau: selectedAthlete.niveau,
         commentaire,
         source: "test",
       },
     ]);
-    toast.success(`Résultat enregistré — ${active.title}`);
+    toast.success(`Résultat enregistré - ${active.title} : ${note}/20`);
     setActive(null);
   };
 
@@ -77,7 +102,7 @@ function Tests() {
     <div className="space-y-6">
       <PageHeader
         title="Tests"
-        description="Tests qui alimentent le diagramme radar. Le module sons reste utilisable pendant la passation."
+        description="Lance le test, lis son résultat brut, puis l'application calcule automatiquement la note radar /20."
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -89,7 +114,7 @@ function Tests() {
             <div className="flex items-start justify-between gap-3">
               <h2 className="text-sm font-semibold">{test.title}</h2>
               <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                Radar
+                /20
               </span>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">{test.description}</p>
@@ -102,6 +127,12 @@ function Tests() {
                 <span className="font-medium text-foreground">Consigne :</span>{" "}
                 {test.instructions}
               </p>
+              {test.axis && (
+                <p>
+                  <span className="font-medium text-foreground">Barème :</span>{" "}
+                  {baremeForAxis(test.axis).label}
+                </p>
+              )}
             </div>
             <Button className="mt-4 w-full gap-2" onClick={() => launch(test)}>
               <Play className="h-4 w-4" />
@@ -135,22 +166,35 @@ function Tests() {
 
             <aside className="max-h-[68vh] space-y-4 overflow-y-auto border-l border-border bg-card p-5 lg:max-h-none">
               <div>
-                <p className="text-sm font-semibold">Enregistrement radar</p>
+                <p className="text-sm font-semibold">Conversion barème</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  En attendant une extraction automatique JS de chaque test, renseigne le
-                  score global à conserver.
+                  Renseigne le résultat brut affiché par le test. La note radar /20 est
+                  calculée automatiquement.
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label>Score obtenu (0-100)</Label>
+                <Label>{activeBareme?.rawLabel ?? "Résultat brut"}</Label>
                 <Input
                   type="number"
-                  min={0}
-                  max={100}
-                  value={score}
-                  onChange={(event) => setScore(event.target.value)}
+                  step="any"
+                  value={rawScore}
+                  onChange={(event) => setRawScore(event.target.value)}
                 />
+              </div>
+
+              <div className="rounded-md border border-cyan-100 bg-cyan-50 px-3 py-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-cyan-900">
+                  Note radar
+                </p>
+                <p className="mt-1 text-2xl font-semibold tabular-nums text-primary">
+                  {computedScore === null ? "-/20" : `${computedScore}/20`}
+                </p>
+                {activeBareme && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Barème utilisé : {activeBareme.label}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -188,7 +232,7 @@ function Tests() {
             </Button>
             <Button className="gap-2" onClick={save}>
               <Save className="h-4 w-4" />
-              Enregistrer le résultat
+              Enregistrer la note /20
             </Button>
           </DialogFooter>
         </DialogContent>

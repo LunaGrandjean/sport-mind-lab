@@ -50,6 +50,19 @@
     document.body.prepend(header);
   }
 
+  window.SportMindLabResult = function (rawScore, label) {
+    var numericScore = Number(rawScore);
+    if (Number.isNaN(numericScore)) return;
+    window.parent.postMessage(
+      {
+        type: "sport-mind-lab:test-result",
+        rawScore: numericScore,
+        label: label || "Résultat brut",
+      },
+      window.location.origin
+    );
+  };
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", injectHeader);
   } else {
