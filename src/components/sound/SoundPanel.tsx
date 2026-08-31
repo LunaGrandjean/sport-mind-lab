@@ -30,6 +30,8 @@ const DEFAULT_SEQUENCES: Record<Palette, string> = {
   foule: "À gauche, À droite, Change",
 };
 
+const DEFAULT_CROWD_VOLUME = 0.28;
+
 interface CrowdLoop {
   source: AudioBufferSourceNode;
   gain: GainNode;
@@ -42,6 +44,7 @@ export function SoundPanel() {
   const [palette, setPalette] = useState<Palette>("voix");
   const [sequence, setSequence] = useState(DEFAULT_SEQUENCES.voix);
   const [intervalMs, setIntervalMs] = useState(2000);
+  const [crowdVolume, setCrowdVolume] = useState(DEFAULT_CROWD_VOLUME);
   const [playing, setPlaying] = useState(false);
   const [last, setLast] = useState<string>("-");
 
@@ -89,8 +92,10 @@ export function SoundPanel() {
     const data = buffer.getChannelData(0);
 
     for (let i = 0; i < data.length; i += 1) {
-      const wave = Math.sin(i * 0.012) * 0.08 + Math.sin(i * 0.031) * 0.05;
-      data[i] = (Math.random() * 2 - 1) * 0.42 + wave;
+      const slowWave = Math.sin(i * 0.007) * 0.18;
+      const chantWave = Math.sin(i * 0.021) * 0.12;
+      const swell = 0.65 + Math.sin(i * 0.00055) * 0.35;
+      data[i] = ((Math.random() * 2 - 1) * 0.72 + slowWave + chantWave) * swell;
     }
 
     const source = ctx.createBufferSource();
@@ -100,14 +105,15 @@ export function SoundPanel() {
     source.buffer = buffer;
     source.loop = true;
     filter.type = "lowpass";
-    filter.frequency.value = 950;
+    filter.frequency.value = 1800;
+    filter.Q.value = 0.8;
     gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.075, ctx.currentTime + 0.4);
+    gain.gain.linearRampToValueAtTime(crowdVolume, ctx.currentTime + 0.25);
 
     source.connect(filter).connect(gain).connect(ctx.destination);
     source.start();
     crowdRef.current = { source, filter, gain };
-  }, []);
+  }, [crowdVolume]);
 
   const stopCrowd = useCallback(() => {
     const crowd = crowdRef.current;
@@ -154,7 +160,7 @@ export function SoundPanel() {
     }
 
     if (palette === "foule") {
-      tone(1480, 0.14, 0.12);
+      tone(1480, 0.14, 0.2);
     }
     speak(value);
   }, [getPool, mode, palette, sequence, speak, tone]);
@@ -166,6 +172,14 @@ export function SoundPanel() {
       stopCrowd();
     }
   }, [palette, playing, startCrowd, stopCrowd]);
+
+  useEffect(() => {
+    const crowd = crowdRef.current;
+    const ctx = ctxRef.current;
+    if (!crowd || !ctx) return;
+    crowd.gain.gain.cancelScheduledValues(ctx.currentTime);
+    crowd.gain.gain.linearRampToValueAtTime(crowdVolume, ctx.currentTime + 0.08);
+  }, [crowdVolume]);
 
   useEffect(() => {
     if (!playing) return;
@@ -289,10 +303,31 @@ export function SoundPanel() {
         </div>
 
         {palette === "foule" && (
-          <p className="rounded-md bg-cyan-50 px-3 py-2 text-xs text-cyan-900">
-            En lecture, un fond de foule reste actif et les annonces sont envoyées par
-            dessus.
-          </p>
+          <div className="space-y-2 rounded-md bg-cyan-50 px-3 py-2 text-xs text-cyan-900">
+            <p>
+              En lecture, un fond de foule reste actif et les annonces sont envoyées par
+              dessus.
+            </p>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-[11px] uppercase text-cyan-900">
+                  Volume foule
+                </Label>
+                <span className="font-medium tabular-nums">
+                  {Math.round(crowdVolume * 100)}%
+                </span>
+              </div>
+              <Input
+                type="range"
+                min={0.08}
+                max={0.6}
+                step={0.02}
+                value={crowdVolume}
+                onChange={(event) => setCrowdVolume(Number(event.target.value))}
+                className="h-8 cursor-pointer"
+              />
+            </div>
+          </div>
         )}
 
         <div className="flex items-center gap-2">
