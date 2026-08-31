@@ -36,6 +36,7 @@ interface CrowdLoop {
   source: AudioBufferSourceNode;
   gain: GainNode;
   filter: BiquadFilterNode;
+  cheerTimer: number;
 }
 
 export function SoundPanel() {
@@ -82,20 +83,54 @@ export function SoundPanel() {
     osc.stop(ctx.currentTime + duration + 0.02);
   }, []);
 
+  const cheerBurst = useCallback((ctx: AudioContext, destination: AudioNode) => {
+    const duration = 0.7 + Math.random() * 0.55;
+    const buffer = ctx.createBuffer(1, ctx.sampleRate * duration, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < data.length; i += 1) {
+      const t = i / ctx.sampleRate;
+      const chant = Math.sin(t * 2 * Math.PI * (150 + Math.random() * 16)) * 0.2;
+      const murmur = Math.sin(t * 2 * Math.PI * 95) * 0.12;
+      const envelope = Math.sin(Math.PI * (i / data.length));
+      data[i] = ((Math.random() * 2 - 1) * 0.8 + chant + murmur) * envelope;
+    }
+
+    const source = ctx.createBufferSource();
+    const bandpass = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    source.buffer = buffer;
+    bandpass.type = "bandpass";
+    bandpass.frequency.value = 850 + Math.random() * 900;
+    bandpass.Q.value = 0.7;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.08);
+    gain.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + duration);
+
+    source.connect(bandpass).connect(gain).connect(destination);
+    source.start();
+    source.stop(ctx.currentTime + duration + 0.02);
+  }, []);
+
   const startCrowd = useCallback(() => {
     if (crowdRef.current) return;
 
     const ctx = getCtx();
     void ctx.resume();
-    const seconds = 2.5;
+    const seconds = 3.5;
     const buffer = ctx.createBuffer(1, ctx.sampleRate * seconds, ctx.sampleRate);
     const data = buffer.getChannelData(0);
 
     for (let i = 0; i < data.length; i += 1) {
-      const slowWave = Math.sin(i * 0.007) * 0.18;
-      const chantWave = Math.sin(i * 0.021) * 0.12;
-      const swell = 0.65 + Math.sin(i * 0.00055) * 0.35;
-      data[i] = ((Math.random() * 2 - 1) * 0.72 + slowWave + chantWave) * swell;
+      const t = i / ctx.sampleRate;
+      const vowelWave =
+        Math.sin(t * 2 * Math.PI * 118) * 0.18 +
+        Math.sin(t * 2 * Math.PI * 176) * 0.1 +
+        Math.sin(t * 2 * Math.PI * 232) * 0.08;
+      const chantPulse = Math.sin(t * 2 * Math.PI * 1.65) > 0.35 ? 0.28 : 0;
+      const swell = 0.58 + Math.sin(t * 2 * Math.PI * 0.42) * 0.28;
+      data[i] = ((Math.random() * 2 - 1) * 0.55 + vowelWave + chantPulse) * swell;
     }
 
     const source = ctx.createBufferSource();
@@ -104,22 +139,30 @@ export function SoundPanel() {
 
     source.buffer = buffer;
     source.loop = true;
-    filter.type = "lowpass";
-    filter.frequency.value = 1800;
-    filter.Q.value = 0.8;
+    filter.type = "bandpass";
+    filter.frequency.value = 1250;
+    filter.Q.value = 0.55;
     gain.gain.setValueAtTime(0.0001, ctx.currentTime);
     gain.gain.linearRampToValueAtTime(crowdVolume, ctx.currentTime + 0.25);
 
     source.connect(filter).connect(gain).connect(ctx.destination);
     source.start();
-    crowdRef.current = { source, filter, gain };
-  }, [crowdVolume]);
+
+    const scheduleCheer = () => {
+      cheerBurst(ctx, gain);
+    };
+    const cheerTimer = window.setInterval(scheduleCheer, 850);
+    scheduleCheer();
+
+    crowdRef.current = { source, filter, gain, cheerTimer };
+  }, [cheerBurst, crowdVolume]);
 
   const stopCrowd = useCallback(() => {
     const crowd = crowdRef.current;
     if (!crowd || !ctxRef.current) return;
 
     const ctx = ctxRef.current;
+    window.clearInterval(crowd.cheerTimer);
     crowd.gain.gain.cancelScheduledValues(ctx.currentTime);
     crowd.gain.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
     window.setTimeout(() => {
@@ -305,8 +348,8 @@ export function SoundPanel() {
         {palette === "foule" && (
           <div className="space-y-2 rounded-md bg-cyan-50 px-3 py-2 text-xs text-cyan-900">
             <p>
-              En lecture, un fond de foule reste actif et les annonces sont envoyées par
-              dessus.
+              En lecture, un brouhaha de stade avec encouragements reste actif et les
+              annonces sont envoyées par dessus.
             </p>
             <div className="space-y-1">
               <div className="flex items-center justify-between">
