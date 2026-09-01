@@ -27,7 +27,7 @@ export function RadarPerformance({
   groupLabel: string;
 }) {
   return (
-    <div className="mx-auto w-full max-w-[720px] rounded-lg border border-cyan-100 bg-[radial-gradient(circle,#ffd9df_0_40%,#fff0dd_40%_60%,#e5f6d8_60%_100%)] p-3">
+    <div className="radar-score-zones mx-auto w-full max-w-[720px] rounded-lg border border-cyan-100 p-3">
       <div className="mb-2 flex flex-wrap justify-center gap-2 text-[11px] font-medium">
         <span className="rounded-full bg-red-100 px-2 py-1 text-red-700">
           &lt; 8 rouge
