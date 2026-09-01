@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApplicationsRouteImport } from './routes/applications'
+import { Route as BilanRouteImport } from './routes/bilan'
 import { Route as ResultatsRouteImport } from './routes/resultats'
 import { Route as SaisieRouteImport } from './routes/saisie'
 import { Route as TestsRouteImport } from './routes/tests'
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
 const ApplicationsRoute = ApplicationsRouteImport.update({
   id: '/applications',
   path: '/applications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BilanRoute = BilanRouteImport.update({
+  id: '/bilan',
+  path: '/bilan',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResultatsRoute = ResultatsRouteImport.update({
@@ -44,6 +50,7 @@ const TestsRoute = TestsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/applications': typeof ApplicationsRoute
+  '/bilan': typeof BilanRoute
   '/resultats': typeof ResultatsRoute
   '/saisie': typeof SaisieRoute
   '/tests': typeof TestsRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/applications': typeof ApplicationsRoute
+  '/bilan': typeof BilanRoute
   '/resultats': typeof ResultatsRoute
   '/saisie': typeof SaisieRoute
   '/tests': typeof TestsRoute
@@ -59,21 +67,23 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/applications': typeof ApplicationsRoute
+  '/bilan': typeof BilanRoute
   '/resultats': typeof ResultatsRoute
   '/saisie': typeof SaisieRoute
   '/tests': typeof TestsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/applications' | '/resultats' | '/saisie' | '/tests'
+  fullPaths: '/' | '/applications' | '/bilan' | '/resultats' | '/saisie' | '/tests'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/applications' | '/resultats' | '/saisie' | '/tests'
-  id: '__root__' | '/' | '/applications' | '/resultats' | '/saisie' | '/tests'
+  to: '/' | '/applications' | '/bilan' | '/resultats' | '/saisie' | '/tests'
+  id: '__root__' | '/' | '/applications' | '/bilan' | '/resultats' | '/saisie' | '/tests'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApplicationsRoute: typeof ApplicationsRoute
+  BilanRoute: typeof BilanRoute
   ResultatsRoute: typeof ResultatsRoute
   SaisieRoute: typeof SaisieRoute
   TestsRoute: typeof TestsRoute
@@ -93,6 +103,13 @@ declare module '@tanstack/react-router' {
       path: '/applications'
       fullPath: '/applications'
       preLoaderRoute: typeof ApplicationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bilan': {
+      id: '/bilan'
+      path: '/bilan'
+      fullPath: '/bilan'
+      preLoaderRoute: typeof BilanRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/resultats': {
@@ -122,6 +139,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApplicationsRoute: ApplicationsRoute,
+  BilanRoute: BilanRoute,
   ResultatsRoute: ResultatsRoute,
   SaisieRoute: SaisieRoute,
   TestsRoute: TestsRoute,

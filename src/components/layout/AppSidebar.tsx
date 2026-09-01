@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Activity,
   Dumbbell,
+  FileText,
   Home,
   LayoutDashboard,
   PencilLine,
@@ -27,9 +28,10 @@ const NAV = [
   { to: "/tests", label: "Tests", icon: Activity },
   { to: "/applications", label: "Applications", icon: Dumbbell },
   { to: "/saisie", label: "Saisie", icon: PencilLine },
+  { to: "/bilan", label: "Fichier client / Bilan", icon: FileText },
 ] as const;
 
-const ATHLETE_PANEL_ROUTES = ["/tests", "/applications", "/saisie"];
+const ATHLETE_PANEL_ROUTES = ["/tests", "/applications", "/saisie", "/bilan"];
 
 export function AppSidebar() {
   const { athletes, selectedAthlete, selectAthlete, addAthlete, updateAthlete } =
