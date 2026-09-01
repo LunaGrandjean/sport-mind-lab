@@ -174,4 +174,9 @@
   .no-print {
     display: none !important;
   }
+
+  .recharts-wrapper,
+  .recharts-surface {
+    max-width: 100% !important;
+  }
 }

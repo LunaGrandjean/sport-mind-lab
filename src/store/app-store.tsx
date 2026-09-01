@@ -21,6 +21,8 @@ interface AppStore {
   addAthlete: () => void;
   updateAthlete: (id: string, patch: Partial<Athlete>) => void;
   addResults: (results: Omit<Result, "id" | "date">[]) => void;
+  exportData: () => PersistedStore & { exportedAt: string; version: 1 };
+  importData: (data: unknown) => void;
 }
 
 const StoreContext = createContext<AppStore | null>(null);
@@ -86,6 +88,16 @@ function loadPersistedStore(): PersistedStore {
   }
 }
 
+function isPersistedStore(data: unknown): data is PersistedStore {
+  if (!data || typeof data !== "object") return false;
+  const candidate = data as Partial<PersistedStore>;
+  return (
+    Array.isArray(candidate.athletes) &&
+    Array.isArray(candidate.results) &&
+    typeof candidate.selectedAthleteId === "string"
+  );
+}
+
 export function AppStoreProvider({ children }: { children: ReactNode }) {
   const initialStore = useMemo(loadPersistedStore, []);
   const [athletes, setAthletes] = useState<Athlete[]>(initialStore.athletes);
@@ -125,6 +137,38 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     ]);
   }, []);
 
+  const exportData = useCallback(
+    () => ({
+      version: 1 as const,
+      exportedAt: new Date().toISOString(),
+      athletes,
+      results,
+      selectedAthleteId,
+    }),
+    [athletes, results, selectedAthleteId],
+  );
+
+  const importData = useCallback((data: unknown) => {
+    if (!isPersistedStore(data) || !data.athletes.length) {
+      throw new Error("Format de sauvegarde invalide");
+    }
+
+    const selectedId = data.athletes.some((a) => a.id === data.selectedAthleteId)
+      ? data.selectedAthleteId
+      : data.athletes[0].id;
+
+    setAthletes(data.athletes);
+    setResults(
+      data.results.map((result) => ({
+        ...result,
+        score: clampRadarScore(
+          result.score > RADAR_MAX_SCORE ? Math.round(result.score / 5) : result.score,
+        ),
+      })),
+    );
+    setSelectedAthleteId(selectedId);
+  }, []);
+
   const value = useMemo<AppStore>(() => {
     const selectedAthlete =
       athletes.find((a) => a.id === selectedAthleteId) ?? athletes[0];
@@ -137,6 +181,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       addAthlete,
       updateAthlete,
       addResults,
+      exportData,
+      importData,
     };
   }, [
     athletes,
@@ -146,6 +192,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     addAthlete,
     updateAthlete,
     addResults,
+    exportData,
+    importData,
   ]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

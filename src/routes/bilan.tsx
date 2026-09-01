@@ -1,6 +1,15 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { FileSpreadsheet, Printer } from "lucide-react";
+import { Download, FileSpreadsheet, Printer, Upload } from "lucide-react";
+import {
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -9,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AXES, AXIS_SHORT, fullName, type Athlete, type Result } from "@/lib/domain";
+import { RADAR_MAX_SCORE } from "@/lib/scoring";
 import { useAppStore } from "@/store/app-store";
 
 export const Route = createFileRoute("/bilan")({
@@ -158,13 +168,22 @@ function buildExcelExport({
 }
 
 function Bilan() {
-  const { selectedAthlete, results } = useAppStore();
+  const { selectedAthlete, results, exportData, importData } = useAppStore();
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   const selectedName = fullName(selectedAthlete).trim() || "Nouveau sportif";
   const athleteResults = useMemo(
     () => results.filter((result) => result.athleteId === selectedAthlete.id),
     [results, selectedAthlete.id],
   );
   const latest = useMemo(() => latestResultsByAxis(athleteResults), [athleteResults]);
+  const radarData = useMemo(
+    () =>
+      latest.map(({ axis, result }) => ({
+        axis: AXIS_SHORT[axis],
+        score: result?.score ?? 0,
+      })),
+    [latest],
+  );
   const sessions = useMemo(() => {
     const byDay = new Map<string, Result[]>();
     for (const result of athleteResults) {
@@ -189,6 +208,33 @@ function Bilan() {
   const [observations, setObservations] = useState("");
   const [summary, setSummary] = useState("");
   const [recommendations, setRecommendations] = useState("");
+
+  const exportJson = () => {
+    downloadBlob(
+      JSON.stringify(exportData(), null, 2),
+      `sport-mind-lab-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`,
+      "application/json;charset=utf-8",
+    );
+    toast.success("Sauvegarde JSON exportée");
+  };
+
+  const importJson = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        importData(JSON.parse(String(reader.result ?? "")));
+        toast.success("Sauvegarde JSON importée");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Import JSON impossible");
+      }
+    };
+    reader.onerror = () => toast.error("Lecture du fichier impossible");
+    reader.readAsText(file);
+  };
 
   const exportExcel = () => {
     const content = buildExcelExport({
@@ -215,6 +261,25 @@ function Bilan() {
         description="Historique des séances, synthèse de prise en charge et exports."
         actions={
           <div className="no-print flex flex-wrap gap-2">
+            <input
+              ref={importInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={importJson}
+            />
+            <Button variant="outline" className="gap-2" onClick={exportJson}>
+              <Download className="h-4 w-4" />
+              Export JSON
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => importInputRef.current?.click()}
+            >
+              <Upload className="h-4 w-4" />
+              Import JSON
+            </Button>
             <Button variant="outline" className="gap-2" onClick={exportExcel}>
               <FileSpreadsheet className="h-4 w-4" />
               Télécharger Excel
@@ -291,23 +356,58 @@ function Bilan() {
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Profil radar
             </h2>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              {latest.map(({ axis, result }) => (
-                <div
-                  key={axis}
-                  className="rounded-md border border-cyan-100 bg-[linear-gradient(135deg,#f6fcff,#ffffff)] p-3"
-                >
-                  <p className="text-xs font-medium text-muted-foreground">
-                    {AXIS_SHORT[axis]}
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold tabular-nums text-primary">
-                    {result ? `${result.score}/20` : "-/20"}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {result ? formatDate(result.date) : "Non renseigné"}
-                  </p>
-                </div>
-              ))}
+            <div className="mt-4 grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+              <div className="min-h-[420px] rounded-lg border border-cyan-100 bg-[radial-gradient(circle,#ffd9df_0_28%,#fff0dd_28%_48%,#e5f6d8_48%_100%)] p-3">
+                <ResponsiveContainer width="100%" height={420}>
+                  <RadarChart data={radarData} outerRadius="72%">
+                    <PolarGrid stroke="rgba(8,39,77,0.16)" />
+                    <PolarAngleAxis
+                      dataKey="axis"
+                      tick={{ fill: "#b39b00", fontSize: 12, fontWeight: 600 }}
+                    />
+                    <PolarRadiusAxis
+                      angle={90}
+                      domain={[0, RADAR_MAX_SCORE]}
+                      tick={{ fill: "#6b4b4b", fontSize: 11 }}
+                      axisLine={false}
+                    />
+                    <Radar
+                      name={selectedName}
+                      dataKey="score"
+                      stroke="#004b7a"
+                      fill="#138fbd"
+                      fillOpacity={0.28}
+                    />
+                    <Tooltip
+                      formatter={(value) => [`${value}/20`, "Note"]}
+                      contentStyle={{
+                        borderRadius: 8,
+                        border: "1px solid var(--border)",
+                        fontSize: 12,
+                      }}
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                {latest.map(({ axis, result }) => (
+                  <div
+                    key={axis}
+                    className="rounded-md border border-cyan-100 bg-[linear-gradient(135deg,#f6fcff,#ffffff)] p-3"
+                  >
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {AXIS_SHORT[axis]}
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold tabular-nums text-primary">
+                      {result ? `${result.score}/20` : "-/20"}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {result ? formatDate(result.date) : "Non renseigné"}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
 
