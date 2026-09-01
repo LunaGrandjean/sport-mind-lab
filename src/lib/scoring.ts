@@ -77,6 +77,12 @@ export const BAREMES = {
     rawLabel: "Niveau / score brut",
     ranges: exactInteger(20),
   },
+  balleTennis: {
+    id: "balleTennis",
+    label: "Balle tennis page web",
+    rawLabel: "Niveau / score brut",
+    ranges: exactInteger(20),
+  },
   labyrinthe: {
     id: "labyrinthe",
     label: "Labyrinthe 1-10",
@@ -232,7 +238,7 @@ export const AXIS_BAREME: Record<Axis, BaremeKey> = {
   "Précision motrice": "haltere10",
   "Vitesse motrice / CPS": "cps",
   "Mémoire billard": "boulesBillard",
-  "Suivi visuel multi-objets": "testNeuroVisuel",
+  "Suivi visuel multi-objets": "balleTennis",
   "Captation information visuelle": "testNeuroVisuel",
   "Vision périphérique": "visionPeripherique",
   Attention: "reseauxAttentionnels",
