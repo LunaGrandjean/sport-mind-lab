@@ -95,6 +95,19 @@ function latestResultsByAxis(results: Result[]) {
   });
 }
 
+function scoreTone(score: number | undefined) {
+  if (score === undefined) {
+    return "border-slate-200 bg-slate-50 text-slate-500";
+  }
+  if (score < 8) {
+    return "border-red-200 bg-red-50 text-red-700";
+  }
+  if (score <= 12) {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+  return "border-green-200 bg-green-50 text-green-700";
+}
+
 function buildExcelExport({
   athlete,
   results,
@@ -357,7 +370,18 @@ function Bilan() {
               Profil radar
             </h2>
             <div className="mt-4 grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
-              <div className="min-h-[420px] rounded-lg border border-cyan-100 bg-[radial-gradient(circle,#ffd9df_0_28%,#fff0dd_28%_48%,#e5f6d8_48%_100%)] p-3">
+              <div className="min-h-[420px] rounded-lg border border-cyan-100 bg-[radial-gradient(circle,#ffd9df_0_40%,#fff0dd_40%_60%,#e5f6d8_60%_100%)] p-3">
+                <div className="mb-2 flex flex-wrap justify-center gap-2 text-[11px] font-medium">
+                  <span className="rounded-full bg-red-100 px-2 py-1 text-red-700">
+                    &lt; 8 rouge
+                  </span>
+                  <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-700">
+                    8 à 12 orange
+                  </span>
+                  <span className="rounded-full bg-green-100 px-2 py-1 text-green-700">
+                    &gt; 12 vert
+                  </span>
+                </div>
                 <ResponsiveContainer width="100%" height={420}>
                   <RadarChart data={radarData} outerRadius="72%">
                     <PolarGrid stroke="rgba(8,39,77,0.16)" />
@@ -394,15 +418,13 @@ function Bilan() {
                 {latest.map(({ axis, result }) => (
                   <div
                     key={axis}
-                    className="rounded-md border border-cyan-100 bg-[linear-gradient(135deg,#f6fcff,#ffffff)] p-3"
+                    className={`rounded-md border p-3 ${scoreTone(result?.score)}`}
                   >
-                    <p className="text-xs font-medium text-muted-foreground">
-                      {AXIS_SHORT[axis]}
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold tabular-nums text-primary">
+                    <p className="text-xs font-medium opacity-80">{AXIS_SHORT[axis]}</p>
+                    <p className="mt-2 text-2xl font-semibold tabular-nums">
                       {result ? `${result.score}/20` : "-/20"}
                     </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-xs opacity-70">
                       {result ? formatDate(result.date) : "Non renseigné"}
                     </p>
                   </div>
