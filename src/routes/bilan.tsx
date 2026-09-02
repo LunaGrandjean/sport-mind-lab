@@ -383,7 +383,7 @@ function Bilan() {
                   </span>
                 </div>
                 <div className="relative h-[400px] w-full">
-                  <div className="radar-score-zones pointer-events-none absolute left-1/2 top-1/2 z-0 aspect-square w-[72%] -translate-x-1/2 -translate-y-1/2 rounded-full" />
+                  <div className="radar-score-zones pointer-events-none absolute left-1/2 top-1/2 z-0 aspect-square h-[72%] -translate-x-1/2 -translate-y-1/2 rounded-full" />
                   <div className="relative z-10 h-full w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart data={radarData} outerRadius="72%">
