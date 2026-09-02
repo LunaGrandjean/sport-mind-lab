@@ -194,6 +194,9 @@ function Bilan() {
       latest.map(({ axis, result }) => ({
         axis: AXIS_SHORT[axis],
         score: result?.score ?? 0,
+        redZone: 8,
+        orangeZone: 12,
+        greenZone: 20,
       })),
     [latest],
   );
@@ -382,40 +385,65 @@ function Bilan() {
                     &gt; 12 vert
                   </span>
                 </div>
-                <div className="relative h-[400px] w-full">
-                  <div className="radar-score-zones pointer-events-none absolute left-1/2 top-1/2 z-0 aspect-square h-[72%] -translate-x-1/2 -translate-y-1/2 rounded-full" />
-                  <div className="relative z-10 h-full w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart data={radarData} outerRadius="72%">
-                        <PolarGrid stroke="rgba(8,39,77,0.16)" />
-                        <PolarAngleAxis
-                          dataKey="axis"
-                          tick={{ fill: "#b39b00", fontSize: 12, fontWeight: 600 }}
-                        />
-                        <PolarRadiusAxis
-                          angle={90}
-                          domain={[0, RADAR_MAX_SCORE]}
-                          tick={{ fill: "#6b4b4b", fontSize: 11 }}
-                          axisLine={false}
-                        />
-                        <Radar
-                          name={selectedName}
-                          dataKey="score"
-                          stroke="#004b7a"
-                          fill="#138fbd"
-                          fillOpacity={0.28}
-                        />
-                        <Tooltip
-                          formatter={(value) => [`${value}/20`, "Note"]}
-                          contentStyle={{
-                            borderRadius: 8,
-                            border: "1px solid var(--border)",
-                            fontSize: 12,
-                          }}
-                        />
-                      </RadarChart>
-                    </ResponsiveContainer>
-                  </div>
+                <div className="h-[400px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart data={radarData} outerRadius="72%">
+                      <PolarGrid stroke="rgba(8,39,77,0.16)" />
+                      <PolarAngleAxis
+                        dataKey="axis"
+                        tick={{ fill: "#b39b00", fontSize: 12, fontWeight: 600 }}
+                      />
+                      <PolarRadiusAxis
+                        angle={90}
+                        domain={[0, RADAR_MAX_SCORE]}
+                        tick={{ fill: "#6b4b4b", fontSize: 11 }}
+                        axisLine={false}
+                      />
+                      <Radar
+                        dataKey="greenZone"
+                        stroke="none"
+                        fill="#dff4d3"
+                        fillOpacity={0.78}
+                        legendType="none"
+                        isAnimationActive={false}
+                      />
+                      <Radar
+                        dataKey="orangeZone"
+                        stroke="none"
+                        fill="#ffefd8"
+                        fillOpacity={0.9}
+                        legendType="none"
+                        isAnimationActive={false}
+                      />
+                      <Radar
+                        dataKey="redZone"
+                        stroke="none"
+                        fill="#ffd6de"
+                        fillOpacity={0.92}
+                        legendType="none"
+                        isAnimationActive={false}
+                      />
+                      <Radar
+                        name={selectedName}
+                        dataKey="score"
+                        stroke="#004b7a"
+                        fill="#138fbd"
+                        fillOpacity={0.28}
+                      />
+                      <Tooltip
+                        formatter={(value, name) =>
+                          ["greenZone", "orangeZone", "redZone"].includes(String(name))
+                            ? null
+                            : [`${value}/20`, "Note"]
+                        }
+                        contentStyle={{
+                          borderRadius: 8,
+                          border: "1px solid var(--border)",
+                          fontSize: 12,
+                        }}
+                      />
+                    </RadarChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
 

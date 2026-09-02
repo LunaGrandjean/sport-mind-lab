@@ -149,13 +149,6 @@
   }
 }
 
-@layer components {
-  .radar-score-zones {
-    background:
-      radial-gradient(circle, #ffd9df 0 40%, #fff0dd 40% 60%, #e5f6d8 60% 100%);
-  }
-}
-
 @media print {
   body {
     background: white !important;

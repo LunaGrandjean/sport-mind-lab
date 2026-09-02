@@ -26,6 +26,13 @@ export function RadarPerformance({
   athleteName: string;
   groupLabel: string;
 }) {
+  const chartData = data.map((item) => ({
+    ...item,
+    redZone: 8,
+    orangeZone: 12,
+    greenZone: 20,
+  }));
+
   return (
     <div className="mx-auto w-full max-w-[720px] rounded-lg border border-cyan-100 bg-white p-3">
       <div className="mb-2 flex flex-wrap justify-center gap-2 text-[11px] font-medium">
@@ -40,10 +47,8 @@ export function RadarPerformance({
         </span>
       </div>
       <div className="relative h-[400px] w-full">
-        <div className="radar-score-zones pointer-events-none absolute left-1/2 top-[46%] z-0 aspect-square h-[72%] -translate-x-1/2 -translate-y-1/2 rounded-full" />
-        <div className="relative z-10 h-full w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart data={data} outerRadius="72%">
+        <ResponsiveContainer width="100%" height="100%">
+          <RadarChart data={chartData} outerRadius="72%">
               <PolarGrid stroke="var(--border)" />
               <PolarAngleAxis
                 dataKey="axis"
@@ -54,6 +59,30 @@ export function RadarPerformance({
                 domain={[0, RADAR_MAX_SCORE]}
                 tick={{ fill: "#6b4b4b", fontSize: 10 }}
                 axisLine={false}
+              />
+              <Radar
+                dataKey="greenZone"
+                stroke="none"
+                fill="#dff4d3"
+                fillOpacity={0.78}
+                legendType="none"
+                isAnimationActive={false}
+              />
+              <Radar
+                dataKey="orangeZone"
+                stroke="none"
+                fill="#ffefd8"
+                fillOpacity={0.9}
+                legendType="none"
+                isAnimationActive={false}
+              />
+              <Radar
+                dataKey="redZone"
+                stroke="none"
+                fill="#ffd6de"
+                fillOpacity={0.92}
+                legendType="none"
+                isAnimationActive={false}
               />
               <Radar
                 name={groupLabel}
@@ -70,6 +99,11 @@ export function RadarPerformance({
                 fillOpacity={0.25}
               />
               <Tooltip
+                formatter={(value, name) =>
+                  ["greenZone", "orangeZone", "redZone"].includes(String(name))
+                    ? null
+                    : [value, name]
+                }
                 contentStyle={{
                   borderRadius: 8,
                   border: "1px solid var(--border)",
@@ -79,7 +113,6 @@ export function RadarPerformance({
               <Legend wrapperStyle={{ fontSize: 12 }} />
             </RadarChart>
           </ResponsiveContainer>
-        </div>
       </div>
     </div>
   );
