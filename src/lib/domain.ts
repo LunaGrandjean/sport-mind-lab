@@ -57,6 +57,16 @@ export interface Result {
   source: "test" | "manuel";
 }
 
+export interface SessionNote {
+  id: string;
+  athleteId: string;
+  date: string;
+  title: string;
+  content: string;
+  objectives?: string;
+  nextSteps?: string;
+}
+
 export type GroupKey =
   | "tous"
   | "discipline"

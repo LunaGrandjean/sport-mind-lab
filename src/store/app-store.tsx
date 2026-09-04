@@ -8,19 +8,21 @@ import {
   type ReactNode,
 } from "react";
 
-import type { Athlete, Result } from "@/lib/domain";
+import type { Athlete, Result, SessionNote } from "@/lib/domain";
 import { INITIAL_ATHLETES, INITIAL_RESULTS } from "@/lib/mock-data";
 import { clampRadarScore, RADAR_MAX_SCORE } from "@/lib/scoring";
 
 interface AppStore {
   athletes: Athlete[];
   results: Result[];
+  sessionNotes: SessionNote[];
   selectedAthleteId: string;
   selectedAthlete: Athlete;
   selectAthlete: (id: string) => void;
   addAthlete: () => void;
   updateAthlete: (id: string, patch: Partial<Athlete>) => void;
   addResults: (results: Omit<Result, "id" | "date">[]) => void;
+  addSessionNote: (session: Omit<SessionNote, "id">) => void;
   exportData: () => PersistedStore & { exportedAt: string; version: 1 };
   importData: (data: unknown) => void;
 }
@@ -31,6 +33,7 @@ const STORAGE_KEY = "sport-mind-lab-store";
 interface PersistedStore {
   athletes: Athlete[];
   results: Result[];
+  sessionNotes: SessionNote[];
   selectedAthleteId: string;
 }
 
@@ -53,6 +56,7 @@ function loadPersistedStore(): PersistedStore {
     return {
       athletes: INITIAL_ATHLETES,
       results: INITIAL_RESULTS,
+      sessionNotes: [],
       selectedAthleteId: INITIAL_ATHLETES[0].id,
     };
   }
@@ -77,12 +81,14 @@ function loadPersistedStore(): PersistedStore {
     return {
       athletes,
       results,
+      sessionNotes: parsed.sessionNotes ?? [],
       selectedAthleteId,
     };
   } catch {
     return {
       athletes: INITIAL_ATHLETES,
       results: INITIAL_RESULTS,
+      sessionNotes: [],
       selectedAthleteId: INITIAL_ATHLETES[0].id,
     };
   }
@@ -94,6 +100,7 @@ function isPersistedStore(data: unknown): data is PersistedStore {
   return (
     Array.isArray(candidate.athletes) &&
     Array.isArray(candidate.results) &&
+    (candidate.sessionNotes === undefined || Array.isArray(candidate.sessionNotes)) &&
     typeof candidate.selectedAthleteId === "string"
   );
 }
@@ -102,6 +109,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const initialStore = useMemo(loadPersistedStore, []);
   const [athletes, setAthletes] = useState<Athlete[]>(initialStore.athletes);
   const [results, setResults] = useState<Result[]>(initialStore.results);
+  const [sessionNotes, setSessionNotes] = useState<SessionNote[]>(
+    initialStore.sessionNotes,
+  );
   const [selectedAthleteId, setSelectedAthleteId] = useState(
     initialStore.selectedAthleteId,
   );
@@ -109,9 +119,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     window.localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ athletes, results, selectedAthleteId }),
+      JSON.stringify({ athletes, results, sessionNotes, selectedAthleteId }),
     );
-  }, [athletes, results, selectedAthleteId]);
+  }, [athletes, results, sessionNotes, selectedAthleteId]);
 
   const selectAthlete = useCallback((id: string) => setSelectedAthleteId(id), []);
 
@@ -137,15 +147,26 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     ]);
   }, []);
 
+  const addSessionNote = useCallback((session: Omit<SessionNote, "id">) => {
+    setSessionNotes((prev) => [
+      ...prev,
+      {
+        ...session,
+        id: `s-${Date.now()}`,
+      },
+    ]);
+  }, []);
+
   const exportData = useCallback(
     () => ({
       version: 1 as const,
       exportedAt: new Date().toISOString(),
       athletes,
       results,
+      sessionNotes,
       selectedAthleteId,
     }),
-    [athletes, results, selectedAthleteId],
+    [athletes, results, sessionNotes, selectedAthleteId],
   );
 
   const importData = useCallback((data: unknown) => {
@@ -166,6 +187,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         ),
       })),
     );
+    setSessionNotes(data.sessionNotes ?? []);
     setSelectedAthleteId(selectedId);
   }, []);
 
@@ -175,23 +197,27 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     return {
       athletes,
       results,
+      sessionNotes,
       selectedAthleteId,
       selectedAthlete,
       selectAthlete,
       addAthlete,
       updateAthlete,
       addResults,
+      addSessionNote,
       exportData,
       importData,
     };
   }, [
     athletes,
     results,
+    sessionNotes,
     selectedAthleteId,
     selectAthlete,
     addAthlete,
     updateAthlete,
     addResults,
+    addSessionNote,
     exportData,
     importData,
   ]);

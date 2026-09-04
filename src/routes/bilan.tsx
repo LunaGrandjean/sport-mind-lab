@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Download, FileSpreadsheet, Printer, Upload } from "lucide-react";
+import { Download, FileSpreadsheet, Printer, Save, Upload } from "lucide-react";
 import {
   PolarAngleAxis,
   PolarGrid,
@@ -17,7 +17,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { AXES, AXIS_SHORT, fullName, type Athlete, type Result } from "@/lib/domain";
+import {
+  AXES,
+  AXIS_SHORT,
+  fullName,
+  type Athlete,
+  type Result,
+  type SessionNote,
+} from "@/lib/domain";
 import { RADAR_MAX_SCORE } from "@/lib/scoring";
 import { useAppStore } from "@/store/app-store";
 
@@ -70,6 +77,14 @@ function escapeHtml(value: string | number | undefined | null) {
     .replace(/"/g, "&quot;");
 }
 
+function escapeMultiline(value: string | number | undefined | null) {
+  return escapeHtml(value).replace(/\n/g, "<br>");
+}
+
+function todayInputValue() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function downloadBlob(content: string, fileName: string, type: string) {
   const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
@@ -111,6 +126,7 @@ function scoreTone(score: number | undefined) {
 function buildExcelExport({
   athlete,
   results,
+  sessionNotes,
   observations,
   summary,
   recommendations,
@@ -119,6 +135,7 @@ function buildExcelExport({
 }: {
   athlete: Athlete;
   results: Result[];
+  sessionNotes: SessionNote[];
   observations: string;
   summary: string;
   recommendations: string;
@@ -127,6 +144,9 @@ function buildExcelExport({
 }) {
   const latest = latestResultsByAxis(results);
   const rows = results
+    .slice()
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const sessions = sessionNotes
     .slice()
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -156,6 +176,20 @@ function buildExcelExport({
       )
       .join("")}
   </table>
+  <h2>Historique des seances</h2>
+  <table border="1">
+    <tr><th>Date</th><th>Titre</th><th>Contenu de seance</th><th>Objectifs travailles</th><th>Suite prevue</th></tr>
+    ${sessions
+      .map(
+        (session) =>
+          `<tr><td>${escapeHtml(formatDate(session.date))}</td><td>${escapeHtml(
+            session.title,
+          )}</td><td>${escapeMultiline(session.content)}</td><td>${escapeMultiline(
+            session.objectives,
+          )}</td><td>${escapeMultiline(session.nextSteps)}</td></tr>`,
+      )
+      .join("")}
+  </table>
   <h2>Historique des tests</h2>
   <table border="1">
     <tr><th>Date</th><th>Axe</th><th>Note /20</th><th>Score brut</th><th>Source</th><th>Mode</th><th>Commentaire</th></tr>
@@ -173,20 +207,34 @@ function buildExcelExport({
       .join("")}
   </table>
   <h2>Bilan</h2>
-  <p><strong>Observations supplementaires :</strong><br>${escapeHtml(observations).replace(/\n/g, "<br>")}</p>
-  <p><strong>Synthese :</strong><br>${escapeHtml(summary).replace(/\n/g, "<br>")}</p>
-  <p><strong>Recommandations :</strong><br>${escapeHtml(recommendations).replace(/\n/g, "<br>")}</p>
+  <p><strong>Observations supplementaires :</strong><br>${escapeMultiline(observations)}</p>
+  <p><strong>Synthese :</strong><br>${escapeMultiline(summary)}</p>
+  <p><strong>Recommandations :</strong><br>${escapeMultiline(recommendations)}</p>
 </body>
 </html>`;
 }
 
 function Bilan() {
-  const { selectedAthlete, results, exportData, importData } = useAppStore();
+  const {
+    selectedAthlete,
+    results,
+    sessionNotes,
+    addSessionNote,
+    exportData,
+    importData,
+  } = useAppStore();
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const selectedName = fullName(selectedAthlete).trim() || "Nouveau sportif";
   const athleteResults = useMemo(
     () => results.filter((result) => result.athleteId === selectedAthlete.id),
     [results, selectedAthlete.id],
+  );
+  const athleteSessionNotes = useMemo(
+    () =>
+      sessionNotes
+        .filter((session) => session.athleteId === selectedAthlete.id)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [sessionNotes, selectedAthlete.id],
   );
   const latest = useMemo(() => latestResultsByAxis(athleteResults), [athleteResults]);
   const radarData = useMemo(
@@ -200,7 +248,7 @@ function Bilan() {
       })),
     [latest],
   );
-  const sessions = useMemo(() => {
+  const testHistory = useMemo(() => {
     const byDay = new Map<string, Result[]>();
     for (const result of athleteResults) {
       const key = formatDate(result.date);
@@ -221,6 +269,11 @@ function Bilan() {
 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [sessionDate, setSessionDate] = useState(todayInputValue);
+  const [sessionTitle, setSessionTitle] = useState("");
+  const [sessionContent, setSessionContent] = useState("");
+  const [sessionObjectives, setSessionObjectives] = useState("");
+  const [sessionNextSteps, setSessionNextSteps] = useState("");
   const [observations, setObservations] = useState("");
   const [summary, setSummary] = useState("");
   const [recommendations, setRecommendations] = useState("");
@@ -256,6 +309,7 @@ function Bilan() {
     const content = buildExcelExport({
       athlete: selectedAthlete,
       results: athleteResults,
+      sessionNotes: athleteSessionNotes,
       observations,
       summary,
       recommendations,
@@ -268,6 +322,29 @@ function Bilan() {
       "application/vnd.ms-excel;charset=utf-8",
     );
     toast.success("Fichier Excel généré");
+  };
+
+  const saveSessionNote = () => {
+    if (!sessionContent.trim() && !sessionObjectives.trim() && !sessionNextSteps.trim()) {
+      toast.error("Ajoute au moins un contenu de séance avant d'enregistrer");
+      return;
+    }
+
+    const date = new Date(`${sessionDate || todayInputValue()}T12:00:00`).toISOString();
+    addSessionNote({
+      athleteId: selectedAthlete.id,
+      date,
+      title: sessionTitle.trim() || `Séance du ${formatDate(date)}`,
+      content: sessionContent.trim(),
+      objectives: sessionObjectives.trim(),
+      nextSteps: sessionNextSteps.trim(),
+    });
+
+    setSessionTitle("");
+    setSessionContent("");
+    setSessionObjectives("");
+    setSessionNextSteps("");
+    toast.success("Séance enregistrée");
   };
 
   return (
@@ -307,6 +384,61 @@ function Bilan() {
           </div>
         }
       />
+
+      <section className="no-print rounded-lg border border-cyan-100 bg-card p-5 shadow-[var(--shadow-card)]">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">Nouvelle séance</h2>
+            <p className="text-sm text-muted-foreground">
+              Note ce qui a été fait pendant la séance, indépendamment des tests.
+            </p>
+          </div>
+          <Button className="gap-2" onClick={saveSessionNote}>
+            <Save className="h-4 w-4" />
+            Enregistrer la séance
+          </Button>
+        </div>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
+          <div className="space-y-2">
+            <Label>Date</Label>
+            <Input
+              type="date"
+              value={sessionDate}
+              onChange={(event) => setSessionDate(event.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Titre</Label>
+            <Input
+              value={sessionTitle}
+              onChange={(event) => setSessionTitle(event.target.value)}
+              placeholder="Ex : Séance équilibre + double tâche"
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          <TextBlock
+            label="Contenu de séance"
+            value={sessionContent}
+            onChange={setSessionContent}
+            placeholder="Ex : échauffement, exercices réalisés, adaptations, réactions du sportif..."
+          />
+          <TextBlock
+            label="Objectifs travaillés"
+            value={sessionObjectives}
+            onChange={setSessionObjectives}
+            placeholder="Ex : inhibition, dissociation, attention partagée..."
+          />
+          <TextBlock
+            label="À prévoir / suite"
+            value={sessionNextSteps}
+            onChange={setSessionNextSteps}
+            placeholder="Ex : refaire tel exercice, augmenter difficulté, surveiller fatigue..."
+          />
+        </div>
+      </section>
 
       <section className="print-area overflow-hidden rounded-lg border border-border bg-card shadow-[var(--shadow-card)]">
         <div className="bg-[#08274d] px-5 py-5 text-center text-white">
@@ -362,7 +494,7 @@ function Bilan() {
                 </div>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3">
-                <MiniStat label="Séances" value={sessions.length} />
+                <MiniStat label="Séances" value={athleteSessionNotes.length} />
                 <MiniStat label="Résultats" value={athleteResults.length} />
               </div>
             </section>
@@ -487,13 +619,42 @@ function Bilan() {
             />
           </section>
 
-          <section className="overflow-x-auto rounded-lg border border-border">
+          <section className="overflow-hidden rounded-lg border border-border">
             <div className="border-b border-border px-4 py-3">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 Historique des séances
               </h2>
             </div>
-            {sessions.length ? (
+            {athleteSessionNotes.length ? (
+              <div className="divide-y divide-border">
+                {athleteSessionNotes.map((session) => (
+                  <article key={session.id} className="space-y-3 px-4 py-4">
+                    <div>
+                      <h3 className="font-semibold">{session.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {formatDate(session.date)}
+                      </p>
+                    </div>
+                    <SessionText label="Contenu" value={session.content} />
+                    <SessionText label="Objectifs travaillés" value={session.objectives} />
+                    <SessionText label="Suite prévue" value={session.nextSteps} />
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="px-4 py-6 text-sm text-muted-foreground">
+                Aucune séance écrite pour ce sportif.
+              </p>
+            )}
+          </section>
+
+          <section className="overflow-x-auto rounded-lg border border-border">
+            <div className="border-b border-border px-4 py-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                Historique des tests
+              </h2>
+            </div>
+            {testHistory.length ? (
               <table className="w-full text-sm">
                 <thead className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
@@ -504,7 +665,7 @@ function Bilan() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {sessions.map((session) => (
+                  {testHistory.map((session) => (
                     <tr key={session.date} className="align-top">
                       <td className="whitespace-nowrap px-4 py-3 font-medium">
                         {session.date}
@@ -529,7 +690,7 @@ function Bilan() {
               </table>
             ) : (
               <p className="px-4 py-6 text-sm text-muted-foreground">
-                Aucun résultat enregistré pour ce sportif.
+                Aucun test enregistré pour ce sportif.
               </p>
             )}
           </section>
@@ -553,6 +714,25 @@ function MiniStat({ label, value }: { label: string; value: number }) {
     <div className="rounded-md bg-cyan-50 px-3 py-2">
       <p className="text-xs uppercase tracking-wide text-cyan-900/70">{label}</p>
       <p className="mt-1 text-xl font-semibold tabular-nums text-primary">{value}</p>
+    </div>
+  );
+}
+
+function SessionText({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | undefined;
+}) {
+  if (!value?.trim()) return null;
+
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{value}</p>
     </div>
   );
 }
