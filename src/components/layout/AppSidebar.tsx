@@ -6,6 +6,7 @@ import {
   Home,
   LayoutDashboard,
   PencilLine,
+  Trash2,
   UserPlus,
 } from "lucide-react";
 
@@ -31,13 +32,49 @@ const NAV = [
   { to: "/bilan", label: "Fichier client / Bilan", icon: FileText },
 ] as const;
 
-const ATHLETE_PANEL_ROUTES = ["/tests", "/applications", "/saisie", "/bilan"];
+const ATHLETE_PANEL_ROUTES = [
+  "/",
+  "/resultats",
+  "/tests",
+  "/applications",
+  "/saisie",
+  "/bilan",
+];
 
 export function AppSidebar() {
-  const { athletes, selectedAthlete, selectAthlete, addAthlete, updateAthlete } =
-    useAppStore();
+  const {
+    athletes,
+    selectedAthlete,
+    selectAthlete,
+    addAthlete,
+    updateAthlete,
+    clearAthleteData,
+    deleteAthlete,
+  } = useAppStore();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const showAthletePanel = ATHLETE_PANEL_ROUTES.includes(pathname);
+
+  const selectedName = fullName(selectedAthlete).trim() || "ce sportif";
+
+  const handleClearAthleteData = () => {
+    if (
+      window.confirm(
+        `Supprimer tous les résultats, séances et bilans enregistrés pour ${selectedName} ? Le profil sportif restera disponible.`,
+      )
+    ) {
+      clearAthleteData(selectedAthlete.id);
+    }
+  };
+
+  const handleDeleteAthlete = () => {
+    if (
+      window.confirm(
+        `Supprimer définitivement ${selectedName} et toutes ses données ?`,
+      )
+    ) {
+      deleteAthlete(selectedAthlete.id);
+    }
+  };
 
   const field = (
     key: "nom" | "prenom" | "age" | "discipline" | "poste" | "pathologie",
@@ -176,6 +213,28 @@ export function AppSidebar() {
                   />
                 </div>
               </div>
+            </div>
+            <div className="mt-3 flex flex-wrap justify-end gap-2 border-t border-cyan-100 pt-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-2 text-red-700 hover:bg-red-50 hover:text-red-800"
+                onClick={handleClearAthleteData}
+              >
+                <Trash2 className="h-4 w-4" />
+                Effacer les données
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="gap-2"
+                onClick={handleDeleteAthlete}
+              >
+                <Trash2 className="h-4 w-4" />
+                Supprimer le sportif
+              </Button>
             </div>
           </section>
         )}

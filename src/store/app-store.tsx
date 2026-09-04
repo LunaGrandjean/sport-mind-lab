@@ -25,6 +25,8 @@ interface AppStore {
   addResults: (results: Omit<Result, "id" | "date">[]) => void;
   addSessionNote: (session: Omit<SessionNote, "id">) => void;
   saveBilanNote: (bilan: Omit<BilanNote, "updatedAt">) => void;
+  clearAthleteData: (athleteId: string) => void;
+  deleteAthlete: (athleteId: string) => void;
   exportData: () => PersistedStore & { exportedAt: string; version: 1 };
   importData: (data: unknown) => void;
 }
@@ -176,6 +178,31 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     ]);
   }, []);
 
+  const clearAthleteData = useCallback((athleteId: string) => {
+    setResults((prev) => prev.filter((result) => result.athleteId !== athleteId));
+    setSessionNotes((prev) => prev.filter((session) => session.athleteId !== athleteId));
+    setBilanNotes((prev) => prev.filter((bilan) => bilan.athleteId !== athleteId));
+  }, []);
+
+  const deleteAthlete = useCallback(
+    (athleteId: string) => {
+      const fallbackAthlete = createEmptyAthlete();
+      setAthletes((prev) => {
+        const next = prev.filter((athlete) => athlete.id !== athleteId);
+        return next.length ? next : [fallbackAthlete];
+      });
+      setResults((prev) => prev.filter((result) => result.athleteId !== athleteId));
+      setSessionNotes((prev) => prev.filter((session) => session.athleteId !== athleteId));
+      setBilanNotes((prev) => prev.filter((bilan) => bilan.athleteId !== athleteId));
+      setSelectedAthleteId((currentId) => {
+        if (currentId !== athleteId) return currentId;
+        const nextAthlete = athletes.find((athlete) => athlete.id !== athleteId);
+        return nextAthlete?.id ?? fallbackAthlete.id;
+      });
+    },
+    [athletes],
+  );
+
   const exportData = useCallback(
     () => ({
       version: 1 as const,
@@ -228,6 +255,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       addResults,
       addSessionNote,
       saveBilanNote,
+      clearAthleteData,
+      deleteAthlete,
       exportData,
       importData,
     };
@@ -243,6 +272,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     addResults,
     addSessionNote,
     saveBilanNote,
+    clearAthleteData,
+    deleteAthlete,
     exportData,
     importData,
   ]);
