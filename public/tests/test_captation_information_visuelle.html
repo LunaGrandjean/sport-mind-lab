@@ -72,6 +72,37 @@ input, button, select {
     display: none;
     margin-top: 30px;
 }
+
+.correction-panel {
+    margin: 22px auto;
+    max-width: 760px;
+    border: 2px solid #0e7490;
+    border-radius: 12px;
+    background: #ecfeff;
+    color: #0f172a;
+    padding: 16px;
+}
+
+.review-pair {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    flex-wrap: wrap;
+    margin: 12px 0;
+}
+
+.review-item {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+}
+
+.review-shape {
+    position: static !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
 </style>
 <link rel="stylesheet" href="./test-theme.css">
 </head>
@@ -133,6 +164,7 @@ const colors = ["black","red","blue","green","yellow"];
 let level=1, errors=0, isMatch=false, state="idle";
 let reactionTimes=[], falsePos=0, falseNeg=0, startResponse=0;
 let currentMode="classic";
+let currentTrialReview="", failedTrials=[];
 
 function displayTime(lvl){
     return displayTimes[Math.min(lvl-1, displayTimes.length-1)];
@@ -148,6 +180,7 @@ function resetStats(){
     reactionTimes=[];
     falsePos=0;
     falseNeg=0;
+    failedTrials=[];
 }
 
 function startTest(fromSetup){
@@ -194,7 +227,16 @@ function createStimulus(el, forcedShape=null, forcedAngle=null){
         el.style.borderTopColor="transparent";
     }
     el.style.transform=`rotate(${angle}deg)`;
-    return {shape, angle};
+    return {shape, angle, color};
+}
+
+function stimulusSnapshot(el, label){
+    const clone = el.cloneNode(true);
+    clone.removeAttribute("id");
+    clone.classList.add("review-shape");
+    clone.style.visibility = "visible";
+    clone.style.opacity = "1";
+    return `<div class="review-item"><strong>${label}</strong>${clone.outerHTML}</div>`;
 }
 
 function showStimulus(){
@@ -228,6 +270,8 @@ function showStimulus(){
         s1.style.visibility=s2.style.visibility="visible";
     }
 
+    currentTrialReview = `<div class="review-pair">${stimulusSnapshot(s1, "Forme 1")}${stimulusSnapshot(s2, "Forme 2")}</div>`;
+
     setTimeout(()=>{
         s1.style.visibility="hidden";
         s2.style.visibility="hidden";
@@ -243,6 +287,12 @@ function respond(choice){
     if(choice!==isMatch){
         isMatch? falseNeg++ : falsePos++;
         errors++;
+        failedTrials.push({
+            level,
+            expected: isMatch ? "Match" : "No match",
+            given: choice ? "Match" : "No match",
+            review: currentTrialReview,
+        });
         error.style.display="block";
         setTimeout(()=>{
             error.style.display="none";
@@ -268,6 +318,17 @@ function endTest(){
 
 function showReport(){
     const avg=Math.round(reactionTimes.reduce((a,b)=>a+b,0)/reactionTimes.length);
+    const correctionsHtml = failedTrials.length ? `
+    <div class="correction-panel">
+      <h3>Correction des erreurs</h3>
+      ${failedTrials.map((trial,index)=>`
+        <div>
+          <p><strong>Erreur ${index+1} - niveau ${trial.level}</strong></p>
+          ${trial.review}
+          <p>Réponse donnée : <strong>${trial.given}</strong> | Réponse attendue : <strong>${trial.expected}</strong></p>
+        </div>
+      `).join("")}
+    </div>` : "";
     report.style.display="block";
     report.innerHTML=`
     <h2>Compte rendu</h2>
@@ -277,6 +338,7 @@ function showReport(){
     <p>Temps de réponse moyen : ${avg} ms</p>
     <p>Faux positifs : ${falsePos}</p>
     <p>Faux négatifs : ${falseNeg}</p>
+    ${correctionsHtml}
     <hr>
     <label><input type="checkbox" id="restart"> Recommencer</label><br>
     <label><input type="radio" name="restartChoice" id="sameMode"> Même mode</label><br>

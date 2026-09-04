@@ -80,6 +80,25 @@ button {
     font-weight: bold;
 }
 
+#correction {
+    display: none;
+    margin-top: 20px;
+    background: rgba(255,255,255,0.72);
+    color: #1f2937;
+    border: 2px solid #8b5e34;
+    border-radius: 12px;
+    padding: 16px;
+    max-width: 760px;
+}
+
+#correctionSequence {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 12px 0;
+}
+
 #startLevelSelect {
     display: none;
     margin-top: 10px;
@@ -139,6 +158,11 @@ button {
 <button onclick="validateAnswer()" id="validateBtn" disabled>Valider</button>
 
 <div id="message"></div>
+<div id="correction">
+    <h2>Correction</h2>
+    <p id="correctionText"></p>
+    <div id="correctionSequence"></div>
+</div>
 
 <script>
 let level = 1;
@@ -185,6 +209,9 @@ function startLevel() {
     document.getElementById("controls").classList.add("semi-transparent");
 
     document.getElementById("message").innerText = "";
+    document.getElementById("correction").style.display = "none";
+    document.getElementById("correctionText").innerText = "";
+    document.getElementById("correctionSequence").innerHTML = "";
     document.getElementById("userInput").value = "";
     document.getElementById("userInput").disabled = true;
     document.getElementById("validateBtn").disabled = true;
@@ -203,6 +230,24 @@ function startLevel() {
     }, getDisplayTime());
 }
 
+function showCorrection(userAnswer) {
+    const correction = document.getElementById("correction");
+    const text = document.getElementById("correctionText");
+    const sequence = document.getElementById("correctionSequence");
+
+    text.innerText = `Réponse donnée : ${userAnswer || "aucune"} | Réponse attendue : ${currentSequence}`;
+    sequence.innerHTML = "";
+    for (let digit of currentSequence) {
+        const ball = document.createElement("div");
+        ball.className = "ball";
+        ball.style.backgroundColor =
+            colors[Math.floor(Math.random() * colors.length)];
+        ball.textContent = digit;
+        sequence.appendChild(ball);
+    }
+    correction.style.display = "block";
+}
+
 function validateAnswer() {
     const userAnswer = document.getElementById("userInput").value;
 
@@ -218,6 +263,7 @@ function validateAnswer() {
     } else {
         document.getElementById("message").innerText =
             "❌ Erreur – niveau atteint : " + level;
+        showCorrection(userAnswer);
         window.SportMindLabResult?.(level, "Niveau atteint");
     }
 

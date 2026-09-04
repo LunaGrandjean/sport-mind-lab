@@ -32,6 +32,12 @@ top:50%;left:50%;transform:translate(-50%,-50%);}
 #reportBox{background:white;padding:30px;border-radius:12px;width:520px;
 box-shadow:0 10px 25px rgba(0,0,0,0.1);text-align:center;}
 .history{text-align:left;margin-top:20px;font-size:14px;}
+.correction-panel{margin:20px 0;border:2px solid #0e7490;border-radius:12px;background:#ecfeff;color:#0f172a;padding:14px;}
+.review-arena{position:relative;width:230px;height:230px;border-radius:50%;background:#e1e6eb;margin:12px auto;}
+.review-arena .circle{position:absolute;width:26px;height:26px;border-width:3px;cursor:default;}
+.review-arena #central,.review-arena .central-review{top:50%;left:50%;transform:translate(-50%,-50%);}
+.review-target{box-shadow:0 0 0 5px rgba(34,197,94,.35);}
+.review-choice{box-shadow:0 0 0 5px rgba(239,68,68,.35);}
 </style>
 <link rel="stylesheet" href="./test-theme.css">
 </head>
@@ -74,6 +80,7 @@ box-shadow:0 10px 25px rgba(0,0,0,0.1);text-align:center;}
 <script>
 const maxLevel=70,startTime=1500,endTime=30;
 let client={},level=1,errors=0,responseTimes=[],responseStart=0,canClick=false,targetIndex=0;
+let failedTrials=[];
 
 function enterFullscreen(){document.documentElement.requestFullscreen?.();}
 function exitFullscreen(){if(document.fullscreenElement)document.exitFullscreen();}
@@ -108,7 +115,7 @@ else countdown.textContent=c;
 }
 
 function startTest(){
-level=1;errors=0;responseTimes=[];
+level=1;errors=0;responseTimes=[];failedTrials=[];
 showPage("pageTest");
 setupLevel();
 }
@@ -146,6 +153,29 @@ canClick=true;
 },appearanceTime(level));
 }
 
+function buildArenaReview(expectedIndex,givenIndex){
+const clone=arena.cloneNode(true);
+clone.removeAttribute("id");
+clone.className="review-arena";
+clone.querySelectorAll(".circle").forEach((circle,index)=>{
+circle.classList.remove("invisible");
+circle.style.opacity="1";
+circle.style.width="26px";
+circle.style.height="26px";
+circle.style.borderWidth="3px";
+circle.onclick=null;
+if(circle.id==="central"){
+circle.removeAttribute("id");
+circle.classList.add("central-review");
+return;
+}
+const peripheralIndex=index-1;
+if(peripheralIndex===expectedIndex) circle.classList.add("review-target");
+if(peripheralIndex===givenIndex) circle.classList.add("review-choice");
+});
+return clone.outerHTML;
+}
+
 function showCross(cb){
 cross.style.display="block";
 setTimeout(()=>{cross.style.display="none";cb();},1200);
@@ -157,6 +187,12 @@ responseTimes.push(performance.now()-responseStart);
 
 if(i!==targetIndex){
 errors++;
+failedTrials.push({
+level,
+expected: targetIndex + 1,
+given: i + 1,
+review: buildArenaReview(targetIndex,i),
+});
 showCross(()=>{
 if(errors>=2){endTest();return;}
 showPage("pageCountdown");
@@ -184,12 +220,25 @@ const key=`${client.nom}_${client.prenom}_${client.age}`;
 const history=JSON.parse(localStorage.getItem(key)||"[]");
 history.push({date,level,time:Math.round(appearanceTime(level)),avg});
 localStorage.setItem(key,JSON.stringify(history));
+const correctionsHtml=failedTrials.length ? `
+<div class="correction-panel">
+<h3>Correction des erreurs</h3>
+${failedTrials.map((trial,index)=>`
+<div>
+<p><strong>Erreur ${index+1} - niveau ${trial.level}</strong></p>
+${trial.review}
+<p>Cercle choisi : <strong>${trial.given}</strong> | Cercle attendu : <strong>${trial.expected}</strong></p>
+<p><span style="color:#15803d;font-weight:bold">Vert</span> = attendu, <span style="color:#b91c1c;font-weight:bold">rouge</span> = choisi.</p>
+</div>
+`).join("")}
+</div>` : "";
 
 reportText.innerHTML=`
 <b>${client.prenom} ${client.nom}</b><br>
 Niveau atteint : ${level}<br>
 Temps apparition : ${Math.round(appearanceTime(level))} ms<br>
-Temps moyen réponse : ${avg} ms`;
+Temps moyen réponse : ${avg} ms
+${correctionsHtml}`;
 window.SportMindLabResult?.(level, "Niveau atteint");
 
 historyDiv=document.getElementById("history");
