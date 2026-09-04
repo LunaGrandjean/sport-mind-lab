@@ -521,8 +521,8 @@ function Bilan() {
                     {selectedAthlete.poste ? ` - ${selectedAthlete.poste}` : ""}
                   </p>
                 </div>
-                <span className="logo-dark-tile h-12 w-12 rounded-xl">
-                  <img src="/logo.png" alt="" className="h-10 w-10" />
+                <span className="brand-logo-tile h-16 w-16">
+                  <img src="/logo.png" alt="" className="h-16 w-16" />
                 </span>
               </div>
               <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">

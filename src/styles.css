@@ -153,15 +153,13 @@
   background: white;
 }
 
-.logo-dark-tile {
+.brand-logo-tile {
   display: grid;
   place-items: center;
-  background: #05070a;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 10px 24px rgba(5, 7, 10, 0.16);
+  background: transparent;
 }
 
-.logo-dark-tile img {
+.brand-logo-tile img {
   object-fit: contain;
 }
 
