@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Download, FileSpreadsheet, Printer, Save, Upload } from "lucide-react";
 import {
@@ -67,6 +67,15 @@ function safeFileName(value: string) {
     .replace(/[^a-z0-9-]+/gi, "_")
     .replace(/^_+|_+$/g, "")
     .toLowerCase();
+}
+
+function dateRangeLabel(startDate: string, endDate: string) {
+  if (!startDate && !endDate) return "Période à compléter";
+  if (startDate && endDate) {
+    return `${formatDate(startDate)} – ${formatDate(endDate)}`;
+  }
+  if (startDate) return `Depuis le ${formatDate(startDate)}`;
+  return `Jusqu'au ${formatDate(endDate)}`;
 }
 
 function escapeHtml(value: string | number | undefined | null) {
@@ -219,7 +228,9 @@ function Bilan() {
     selectedAthlete,
     results,
     sessionNotes,
+    bilanNotes,
     addSessionNote,
+    saveBilanNote,
     exportData,
     importData,
   } = useAppStore();
@@ -235,6 +246,10 @@ function Bilan() {
         .filter((session) => session.athleteId === selectedAthlete.id)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
     [sessionNotes, selectedAthlete.id],
+  );
+  const savedBilan = useMemo(
+    () => bilanNotes.find((bilan) => bilan.athleteId === selectedAthlete.id),
+    [bilanNotes, selectedAthlete.id],
   );
   const latest = useMemo(() => latestResultsByAxis(athleteResults), [athleteResults]);
   const radarData = useMemo(
@@ -277,6 +292,17 @@ function Bilan() {
   const [observations, setObservations] = useState("");
   const [summary, setSummary] = useState("");
   const [recommendations, setRecommendations] = useState("");
+  const [isBilanLocked, setIsBilanLocked] = useState(false);
+  const periodLabel = dateRangeLabel(startDate, endDate);
+
+  useEffect(() => {
+    setStartDate(savedBilan?.startDate ?? "");
+    setEndDate(savedBilan?.endDate ?? "");
+    setObservations(savedBilan?.observations ?? "");
+    setSummary(savedBilan?.summary ?? "");
+    setRecommendations(savedBilan?.recommendations ?? "");
+    setIsBilanLocked(Boolean(savedBilan));
+  }, [savedBilan, selectedAthlete.id]);
 
   const exportJson = () => {
     downloadBlob(
@@ -347,6 +373,19 @@ function Bilan() {
     toast.success("Séance enregistrée");
   };
 
+  const saveBilan = () => {
+    saveBilanNote({
+      athleteId: selectedAthlete.id,
+      startDate,
+      endDate,
+      observations: observations.trim(),
+      summary: summary.trim(),
+      recommendations: recommendations.trim(),
+    });
+    setIsBilanLocked(true);
+    toast.success("Bilan enregistré");
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -365,6 +404,20 @@ function Bilan() {
               <Download className="h-4 w-4" />
               Export JSON
             </Button>
+            {isBilanLocked ? (
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => setIsBilanLocked(false)}
+              >
+                Modifier le bilan
+              </Button>
+            ) : (
+              <Button variant="outline" className="gap-2" onClick={saveBilan}>
+                <Save className="h-4 w-4" />
+                Enregistrer le bilan
+              </Button>
+            )}
             <Button
               variant="outline"
               className="gap-2"
@@ -440,17 +493,24 @@ function Bilan() {
         </div>
       </section>
 
-      <section className="print-area overflow-hidden rounded-lg border border-border bg-card shadow-[var(--shadow-card)]">
-        <div className="bg-[#08274d] px-5 py-5 text-center text-white">
-          <p className="text-2xl font-semibold uppercase tracking-[0.35em]">
-            Bilan de prise en charge
-          </p>
-          <p className="mt-2 text-sm text-white/80">
-            Cabinet Neurocognitif Valentin Rumeau
-          </p>
+      <section className="print-area bilan-report overflow-hidden rounded-lg border border-border bg-card shadow-[var(--shadow-card)]">
+        <div className="bilan-cover-page">
+          <div className="bilan-title-box">
+            <p>Bilan de prise en charge</p>
+            <span>
+              {selectedName}
+              {selectedAthlete.discipline ? `, ${selectedAthlete.discipline}` : ""}
+            </span>
+          </div>
+
+          <div className="bilan-cabinet-box">
+            <p>{periodLabel}</p>
+            <span>Cabinet Neurocognitif Valentin Rumeau</span>
+            <span>7 Place Hélène Boucher - 31130 Quint-Fonsegrives</span>
+          </div>
         </div>
 
-        <div className="space-y-6 p-5">
+        <div className="bilan-summary-page space-y-6 p-5">
           <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
             <section className="rounded-lg border border-border p-4">
               <div className="flex items-start justify-between gap-4">
@@ -461,7 +521,9 @@ function Bilan() {
                     {selectedAthlete.poste ? ` - ${selectedAthlete.poste}` : ""}
                   </p>
                 </div>
-                <img src="/logo.png" alt="" className="h-12 w-12 object-contain" />
+                <span className="logo-dark-tile h-12 w-12 rounded-xl">
+                  <img src="/logo.png" alt="" className="h-10 w-10" />
+                </span>
               </div>
               <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                 <Info label="Âge" value={selectedAthlete.age || "-"} />
@@ -481,6 +543,7 @@ function Bilan() {
                   <Input
                     type="date"
                     value={startDate}
+                    disabled={isBilanLocked}
                     onChange={(event) => setStartDate(event.target.value)}
                   />
                 </div>
@@ -489,6 +552,7 @@ function Bilan() {
                   <Input
                     type="date"
                     value={endDate}
+                    disabled={isBilanLocked}
                     onChange={(event) => setEndDate(event.target.value)}
                   />
                 </div>
@@ -497,15 +561,54 @@ function Bilan() {
                 <MiniStat label="Séances" value={athleteSessionNotes.length} />
                 <MiniStat label="Résultats" value={athleteResults.length} />
               </div>
+              {savedBilan ? (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Bilan enregistré le {formatDateTime(savedBilan.updatedAt)}
+                </p>
+              ) : null}
             </section>
           </div>
 
           <section className="rounded-lg border border-border p-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Profil radar
+            <h2 className="bilan-section-title text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              {selectedName}, {athleteSessionNotes.length} séance
+              {athleteSessionNotes.length > 1 ? "s" : ""} :
             </h2>
-            <div className="mt-4 grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
-              <div className="mx-auto w-full max-w-[720px] rounded-lg border border-cyan-100 bg-white p-3">
+            <div className="bilan-report-grid mt-4 grid gap-5 xl:grid-cols-[minmax(280px,0.85fr)_minmax(360px,1.15fr)]">
+              <div className="bilan-text-column space-y-4">
+                <div className="bilan-report-box">
+                  <TextBlock
+                    label="Observations supplémentaires"
+                    value={observations}
+                    onChange={setObservations}
+                    disabled={isBilanLocked}
+                    placeholder="Ex : meilleur contrôle, points forts observés..."
+                  />
+                  <div className="mt-5">
+                    <TextBlock
+                      label="Bilan"
+                      value={summary}
+                      onChange={setSummary}
+                      disabled={isBilanLocked}
+                      placeholder="Ex : niveau neurocognitif, évolution, objectif de prise en charge..."
+                    />
+                  </div>
+                </div>
+                <div className="bilan-flow-arrow" aria-hidden="true">
+                  ↓
+                </div>
+                <div className="bilan-report-box">
+                  <TextBlock
+                    label="Recommandations"
+                    value={recommendations}
+                    onChange={setRecommendations}
+                    disabled={isBilanLocked}
+                    placeholder="Ex : continuité du travail, rappels, exercices à intégrer..."
+                  />
+                </div>
+              </div>
+
+              <div className="bilan-radar-figure mx-auto w-full max-w-[680px] bg-white p-3">
                 <div className="mb-2 flex flex-wrap justify-center gap-2 text-[11px] font-medium">
                   <span className="rounded-full bg-red-100 px-2 py-1 text-red-700">
                     &lt; 8 rouge
@@ -579,7 +682,7 @@ function Bilan() {
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              <div className="hidden">
                 {latest.map(({ axis, result }) => (
                   <div
                     key={axis}
@@ -598,23 +701,26 @@ function Bilan() {
             </div>
           </section>
 
-          <section className="grid gap-4 lg:grid-cols-3">
+          <section className="hidden">
             <TextBlock
               label="Observations supplémentaires"
               value={observations}
               onChange={setObservations}
+              disabled={isBilanLocked}
               placeholder="Ex : meilleur contrôle, points forts observés..."
             />
             <TextBlock
               label="Bilan"
               value={summary}
               onChange={setSummary}
+              disabled={isBilanLocked}
               placeholder="Ex : niveau neurocognitif, évolution, objectif de prise en charge..."
             />
             <TextBlock
               label="Recommandations"
               value={recommendations}
               onChange={setRecommendations}
+              disabled={isBilanLocked}
               placeholder="Ex : continuité du travail, rappels, exercices à intégrer..."
             />
           </section>
@@ -742,21 +848,32 @@ function TextBlock({
   value,
   onChange,
   placeholder,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
       <Textarea
-        className="min-h-32"
+        className="min-h-32 print:hidden"
         value={value}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
       />
+      <div className="print-text-block hidden rounded-md border border-border p-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+        <p className="mt-2 min-h-16 whitespace-pre-wrap text-sm leading-relaxed">
+          {value.trim() || "-"}
+        </p>
+      </div>
     </div>
   );
 }

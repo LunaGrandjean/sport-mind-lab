@@ -149,9 +149,126 @@
   }
 }
 
+.bilan-report {
+  background: white;
+}
+
+.logo-dark-tile {
+  display: grid;
+  place-items: center;
+  background: #05070a;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 10px 24px rgba(5, 7, 10, 0.16);
+}
+
+.logo-dark-tile img {
+  object-fit: contain;
+}
+
+.bilan-cover-page {
+  min-height: 720px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7rem;
+  padding: 4rem 2rem;
+  background: white;
+}
+
+.bilan-title-box,
+.bilan-cabinet-box,
+.bilan-report-box {
+  border: 3px solid #18546a;
+  background: #e9f7fc;
+  color: #123f52;
+  box-shadow: 0 2px 0 rgba(24, 84, 106, 0.08);
+}
+
+.bilan-title-box {
+  width: min(100%, 920px);
+  padding: 1rem 1.5rem;
+  text-align: center;
+}
+
+.bilan-title-box p {
+  font-size: clamp(2rem, 5vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+.bilan-title-box span {
+  display: block;
+  margin-top: 0.35rem;
+  color: #111827;
+  font-size: clamp(1.4rem, 3vw, 2.6rem);
+}
+
+.bilan-cabinet-box {
+  width: min(100%, 680px);
+  padding: 0.7rem 1.2rem;
+  text-align: center;
+  color: #111827;
+}
+
+.bilan-cabinet-box p {
+  color: #18546a;
+  font-weight: 800;
+  font-size: 1.35rem;
+}
+
+.bilan-cabinet-box span {
+  display: block;
+  font-size: 1.15rem;
+}
+
+.bilan-summary-page {
+  background: white;
+}
+
+.bilan-section-title {
+  color: #111827;
+  font-size: clamp(1.4rem, 3vw, 2.4rem);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.bilan-report-box {
+  padding: 1rem;
+  text-align: center;
+}
+
+.bilan-report-box label,
+.bilan-report-box .text-xs {
+  color: #18546a;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.bilan-flow-arrow {
+  color: #18546a;
+  font-size: 3.5rem;
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+}
+
+.bilan-radar-figure {
+  border: 0;
+}
+
 @media print {
+  @page {
+    margin: 12mm;
+  }
+
+  html,
   body {
     background: white !important;
+    height: auto !important;
+    overflow: visible !important;
   }
 
   body * {
@@ -164,11 +281,48 @@
   }
 
   .print-area {
-    position: absolute;
-    inset: 0;
+    position: static !important;
     width: 100%;
+    height: auto !important;
+    overflow: visible !important;
     border: 0 !important;
     box-shadow: none !important;
+  }
+
+  .bilan-cover-page {
+    min-height: 250mm;
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .bilan-summary-page {
+    padding: 0 !important;
+  }
+
+  .bilan-report-grid {
+    display: grid !important;
+    grid-template-columns: 0.82fr 1.18fr !important;
+    align-items: center;
+    gap: 12mm !important;
+  }
+
+  .bilan-title-box,
+  .bilan-cabinet-box,
+  .bilan-report-box {
+    border-color: #18546a !important;
+    background: #e9f7fc !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .print-area section,
+  .print-area article {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-text-block {
+    display: block !important;
   }
 
   .no-print {

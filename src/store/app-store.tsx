@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 
-import type { Athlete, Result, SessionNote } from "@/lib/domain";
+import type { Athlete, BilanNote, Result, SessionNote } from "@/lib/domain";
 import { INITIAL_ATHLETES, INITIAL_RESULTS } from "@/lib/mock-data";
 import { clampRadarScore, RADAR_MAX_SCORE } from "@/lib/scoring";
 
@@ -16,6 +16,7 @@ interface AppStore {
   athletes: Athlete[];
   results: Result[];
   sessionNotes: SessionNote[];
+  bilanNotes: BilanNote[];
   selectedAthleteId: string;
   selectedAthlete: Athlete;
   selectAthlete: (id: string) => void;
@@ -23,6 +24,7 @@ interface AppStore {
   updateAthlete: (id: string, patch: Partial<Athlete>) => void;
   addResults: (results: Omit<Result, "id" | "date">[]) => void;
   addSessionNote: (session: Omit<SessionNote, "id">) => void;
+  saveBilanNote: (bilan: Omit<BilanNote, "updatedAt">) => void;
   exportData: () => PersistedStore & { exportedAt: string; version: 1 };
   importData: (data: unknown) => void;
 }
@@ -34,6 +36,7 @@ interface PersistedStore {
   athletes: Athlete[];
   results: Result[];
   sessionNotes: SessionNote[];
+  bilanNotes: BilanNote[];
   selectedAthleteId: string;
 }
 
@@ -57,6 +60,7 @@ function loadPersistedStore(): PersistedStore {
       athletes: INITIAL_ATHLETES,
       results: INITIAL_RESULTS,
       sessionNotes: [],
+      bilanNotes: [],
       selectedAthleteId: INITIAL_ATHLETES[0].id,
     };
   }
@@ -82,6 +86,7 @@ function loadPersistedStore(): PersistedStore {
       athletes,
       results,
       sessionNotes: parsed.sessionNotes ?? [],
+      bilanNotes: parsed.bilanNotes ?? [],
       selectedAthleteId,
     };
   } catch {
@@ -89,6 +94,7 @@ function loadPersistedStore(): PersistedStore {
       athletes: INITIAL_ATHLETES,
       results: INITIAL_RESULTS,
       sessionNotes: [],
+      bilanNotes: [],
       selectedAthleteId: INITIAL_ATHLETES[0].id,
     };
   }
@@ -101,6 +107,7 @@ function isPersistedStore(data: unknown): data is PersistedStore {
     Array.isArray(candidate.athletes) &&
     Array.isArray(candidate.results) &&
     (candidate.sessionNotes === undefined || Array.isArray(candidate.sessionNotes)) &&
+    (candidate.bilanNotes === undefined || Array.isArray(candidate.bilanNotes)) &&
     typeof candidate.selectedAthleteId === "string"
   );
 }
@@ -112,6 +119,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [sessionNotes, setSessionNotes] = useState<SessionNote[]>(
     initialStore.sessionNotes,
   );
+  const [bilanNotes, setBilanNotes] = useState<BilanNote[]>(initialStore.bilanNotes);
   const [selectedAthleteId, setSelectedAthleteId] = useState(
     initialStore.selectedAthleteId,
   );
@@ -119,9 +127,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     window.localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ athletes, results, sessionNotes, selectedAthleteId }),
+      JSON.stringify({ athletes, results, sessionNotes, bilanNotes, selectedAthleteId }),
     );
-  }, [athletes, results, sessionNotes, selectedAthleteId]);
+  }, [athletes, results, sessionNotes, bilanNotes, selectedAthleteId]);
 
   const selectAthlete = useCallback((id: string) => setSelectedAthleteId(id), []);
 
@@ -157,6 +165,17 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     ]);
   }, []);
 
+  const saveBilanNote = useCallback((bilan: Omit<BilanNote, "updatedAt">) => {
+    const nextBilan = {
+      ...bilan,
+      updatedAt: new Date().toISOString(),
+    };
+    setBilanNotes((prev) => [
+      ...prev.filter((entry) => entry.athleteId !== bilan.athleteId),
+      nextBilan,
+    ]);
+  }, []);
+
   const exportData = useCallback(
     () => ({
       version: 1 as const,
@@ -164,9 +183,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       athletes,
       results,
       sessionNotes,
+      bilanNotes,
       selectedAthleteId,
     }),
-    [athletes, results, sessionNotes, selectedAthleteId],
+    [athletes, results, sessionNotes, bilanNotes, selectedAthleteId],
   );
 
   const importData = useCallback((data: unknown) => {
@@ -188,6 +208,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       })),
     );
     setSessionNotes(data.sessionNotes ?? []);
+    setBilanNotes(data.bilanNotes ?? []);
     setSelectedAthleteId(selectedId);
   }, []);
 
@@ -198,6 +219,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       athletes,
       results,
       sessionNotes,
+      bilanNotes,
       selectedAthleteId,
       selectedAthlete,
       selectAthlete,
@@ -205,6 +227,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       updateAthlete,
       addResults,
       addSessionNote,
+      saveBilanNote,
       exportData,
       importData,
     };
@@ -212,12 +235,14 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     athletes,
     results,
     sessionNotes,
+    bilanNotes,
     selectedAthleteId,
     selectAthlete,
     addAthlete,
     updateAthlete,
     addResults,
     addSessionNote,
+    saveBilanNote,
     exportData,
     importData,
   ]);

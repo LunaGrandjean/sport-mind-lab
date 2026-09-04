@@ -67,6 +67,16 @@ export interface SessionNote {
   nextSteps?: string;
 }
 
+export interface BilanNote {
+  athleteId: string;
+  startDate: string;
+  endDate: string;
+  observations: string;
+  summary: string;
+  recommendations: string;
+  updatedAt: string;
+}
+
 export type GroupKey =
   | "tous"
   | "discipline"

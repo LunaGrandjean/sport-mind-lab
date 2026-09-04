@@ -71,11 +71,11 @@ export function AppSidebar() {
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
-            <span className="grid h-12 w-12 place-items-center rounded-xl bg-cyan-50 shadow-inner ring-1 ring-cyan-100">
+            <span className="logo-dark-tile h-12 w-12 rounded-xl">
               <img
                 src="/logo.png"
                 alt="Logo du cabinet"
-                className="h-10 w-10 object-contain"
+                className="h-10 w-10"
               />
             </span>
             <div className="leading-tight">

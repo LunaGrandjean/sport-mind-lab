@@ -146,11 +146,9 @@ function Accueil() {
 
         <div className="flex flex-col gap-4 border-t border-cyan-100 bg-[linear-gradient(90deg,#f0fbff_0%,#fffdf3_55%,#fff4f5_100%)] px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
-            <img
-              src="/logo.png"
-              alt="Logo du cabinet"
-              className="h-14 w-14 object-contain"
-            />
+            <span className="logo-dark-tile h-14 w-14 rounded-xl">
+              <img src="/logo.png" alt="Logo du cabinet" className="h-12 w-12" />
+            </span>
             <div>
               <p className="text-sm font-semibold">Profil actif : {profileLabel}</p>
               <p className="text-xs text-muted-foreground">
