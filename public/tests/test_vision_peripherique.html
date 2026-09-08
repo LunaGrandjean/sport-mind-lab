@@ -37,8 +37,19 @@ box-shadow:0 10px 25px rgba(0,0,0,0.1);text-align:left;margin:0 auto;}
 .review-arena{position:relative;width:min(280px,100%);aspect-ratio:1/1;border-radius:50%;background:#e1e6eb;margin:12px auto;overflow:hidden;}
 .review-arena .circle{position:absolute;width:26px;height:26px;border-width:3px;cursor:default;}
 .review-arena #central,.review-arena .central-review{top:50%;left:50%;transform:translate(-50%,-50%);}
-.review-target{box-shadow:0 0 0 5px rgba(34,197,94,.35);}
-.review-choice{box-shadow:0 0 0 5px rgba(239,68,68,.35);}
+.review-target{
+border-color:#16a34a !important;
+background:rgba(34,197,94,.12);
+box-shadow:0 0 0 5px rgba(34,197,94,.35);
+}
+.review-choice{
+border-color:#dc2626 !important;
+background:rgba(239,68,68,.12);
+box-shadow:0 0 0 5px rgba(239,68,68,.35);
+}
+.review-target.review-choice{
+background:linear-gradient(135deg, rgba(34,197,94,.14), rgba(239,68,68,.14));
+}
 .correction-panel p{margin:8px 0;}
 </style>
 <link rel="stylesheet" href="./test-theme.css">
