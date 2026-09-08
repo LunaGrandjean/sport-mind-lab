@@ -157,7 +157,7 @@ function buildExcelExport({
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const sessions = sessionNotes
     .slice()
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return `<!doctype html>
 <html>
@@ -732,20 +732,37 @@ function Bilan() {
               </h2>
             </div>
             {athleteSessionNotes.length ? (
-              <div className="divide-y divide-border">
-                {athleteSessionNotes.map((session) => (
-                  <article key={session.id} className="space-y-3 px-4 py-4">
-                    <div>
-                      <h3 className="font-semibold">{session.title}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDate(session.date)}
-                      </p>
-                    </div>
-                    <SessionText label="Contenu" value={session.content} />
-                    <SessionText label="Objectifs travaillés" value={session.objectives} />
-                    <SessionText label="Suite prévue" value={session.nextSteps} />
-                  </article>
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">Date</th>
+                      <th className="px-4 py-3 font-medium">Titre</th>
+                      <th className="px-4 py-3 font-medium">Contenu</th>
+                      <th className="px-4 py-3 font-medium">Objectifs</th>
+                      <th className="px-4 py-3 font-medium">Suite prévue</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {athleteSessionNotes.map((session) => (
+                      <tr key={session.id} className="align-top">
+                        <td className="whitespace-nowrap px-4 py-3 font-medium">
+                          {formatDate(session.date)}
+                        </td>
+                        <td className="px-4 py-3">{session.title}</td>
+                        <td className="px-4 py-3 whitespace-pre-wrap">
+                          {session.content || "-"}
+                        </td>
+                        <td className="px-4 py-3 whitespace-pre-wrap">
+                          {session.objectives || "-"}
+                        </td>
+                        <td className="px-4 py-3 whitespace-pre-wrap">
+                          {session.nextSteps || "-"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             ) : (
               <p className="px-4 py-6 text-sm text-muted-foreground">
