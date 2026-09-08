@@ -257,6 +257,10 @@
   border: 0;
 }
 
+.bilan-radar-stage {
+  height: 520px;
+}
+
 @media print {
   @page {
     margin: 12mm;
@@ -297,11 +301,28 @@
     padding: 0 !important;
   }
 
+  .bilan-print-skip {
+    display: none !important;
+  }
+
   .bilan-report-grid {
     display: grid !important;
-    grid-template-columns: 0.82fr 1.18fr !important;
+    grid-template-columns: 0.72fr 1.28fr !important;
     align-items: center;
-    gap: 12mm !important;
+    gap: 8mm !important;
+  }
+
+  .bilan-radar-stage {
+    height: 700px !important;
+  }
+
+  .bilan-radar-figure {
+    max-width: none !important;
+    padding: 4px !important;
+  }
+
+  .print-area .overflow-hidden {
+    overflow: visible !important;
   }
 
   .bilan-title-box,

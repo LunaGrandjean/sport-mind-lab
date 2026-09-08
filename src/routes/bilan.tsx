@@ -134,6 +134,19 @@ function bestResultsByAxis(results: Result[]) {
   });
 }
 
+const RADAR_SCORE_POSITIONS = [
+  { left: "50%", top: "16%" },
+  { left: "71%", top: "27%" },
+  { left: "86%", top: "49%" },
+  { left: "76%", top: "73%" },
+  { left: "60%", top: "86%" },
+  { left: "40%", top: "86%" },
+  { left: "24%", top: "73%" },
+  { left: "14%", top: "50%" },
+  { left: "28%", top: "27%" },
+  { left: "40%", top: "19%" },
+] as const;
+
 function scoreTone(score: number | undefined) {
   if (score === undefined) {
     return "border-slate-200 bg-slate-50 text-slate-500";
@@ -543,7 +556,7 @@ function Bilan() {
 
         <div className="bilan-summary-page space-y-6 p-5">
           <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-            <section className="rounded-lg border border-border p-4">
+            <section className="bilan-print-skip rounded-lg border border-border p-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-lg font-semibold">{selectedName}</h2>
@@ -564,7 +577,7 @@ function Bilan() {
               </dl>
             </section>
 
-            <section className="rounded-lg border border-border p-4">
+            <section className="bilan-print-skip rounded-lg border border-border p-4">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 Période et séances
               </h2>
@@ -600,7 +613,7 @@ function Bilan() {
             </section>
           </div>
 
-          <section className="overflow-hidden rounded-lg border border-border p-4">
+          <section className="bilan-print-skip overflow-hidden rounded-lg border border-border p-4">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Meilleures perfs aux tests
             </h2>
@@ -671,7 +684,7 @@ function Bilan() {
                 </div>
               </div>
 
-              <div className="bilan-radar-figure mx-auto w-full max-w-[680px] bg-white p-3">
+              <div className="bilan-radar-figure mx-auto w-full max-w-[780px] bg-white p-3">
                 <div className="mb-2 flex flex-wrap justify-center gap-2 text-[11px] font-medium">
                   <span className="rounded-full bg-red-100 px-2 py-1 text-red-700">
                     &lt; 8 rouge
@@ -683,13 +696,13 @@ function Bilan() {
                     &gt; 12 vert
                   </span>
                 </div>
-                <div className="h-[400px] w-full">
+                <div className="bilan-radar-stage relative w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={radarData} outerRadius="72%">
+                    <RadarChart data={radarData} outerRadius="84%">
                       <PolarGrid stroke="rgba(8,39,77,0.16)" />
                       <PolarAngleAxis
                         dataKey="axis"
-                        tick={{ fill: "#b39b00", fontSize: 12, fontWeight: 600 }}
+                        tick={{ fill: "#111827", fontSize: 12, fontWeight: 700 }}
                       />
                       <PolarRadiusAxis
                         angle={90}
@@ -742,6 +755,19 @@ function Bilan() {
                       />
                     </RadarChart>
                   </ResponsiveContainer>
+                  <div className="pointer-events-none absolute inset-0">
+                    {latest.map(({ axis, result }, index) =>
+                      result ? (
+                        <div
+                          key={axis}
+                          className={`absolute -translate-x-1/2 -translate-y-1/2 min-w-9 rounded-md border px-2 py-0.5 text-xs font-semibold tabular-nums shadow-sm sm:text-sm ${scoreTone(result.score)}`}
+                          style={RADAR_SCORE_POSITIONS[index]}
+                        >
+                          {result.score}
+                        </div>
+                      ) : null,
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -788,7 +814,7 @@ function Bilan() {
             />
           </section>
 
-          <section className="overflow-hidden rounded-lg border border-border">
+          <section className="bilan-print-skip overflow-hidden rounded-lg border border-border">
             <div className="border-b border-border px-4 py-3">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 Historique des séances
