@@ -177,6 +177,9 @@ let level=1,errors=0,balls=[],startT,answered=false;
 let reactionTimes=[];
 let failedSnapshots=[];
 const DURATION=10000;
+const TOP_BARRIER=88;
+const BOTTOM_BARRIER=110;
+const RIGHT_BARRIER=50;
 
 /* ==== CALIBRATION VERROUILLÉE ==== */
 const LEVEL_CONFIG = [
@@ -202,7 +205,7 @@ const LEVEL_CONFIG = [
 { min:10,max:14,speed:0.63,var:0.30 }
 ];
 
-function resize(){cv.width=innerWidth-50;cv.height=innerHeight-110}
+function resize(){cv.width=innerWidth-RIGHT_BARRIER;cv.height=innerHeight-BOTTOM_BARRIER}
 window.onresize=resize;
 
 function show(p){
@@ -245,7 +248,7 @@ const n=Math.floor(Math.random()*(c.max-c.min+1))+c.min;
 for(let i=0;i<n;i++){
 balls.push({
 x:Math.random()*cv.width,
-y:Math.random()*cv.height,
+y:TOP_BARRIER + Math.random()*(Math.max(1,cv.height-TOP_BARRIER)),
 a:Math.random()*6.28,
 rot:Math.random()*6.28,
 s:c.speed,v:c.var,r:26,next:Date.now()+400
@@ -291,7 +294,10 @@ b.y+=Math.sin(b.a)*b.s;
 b.rot+=b.s*0.1;
 
 if(b.x<b.r||b.x>cv.width-b.r)b.a=Math.PI-b.a;
-if(b.y<b.r||b.y>cv.height-b.r)b.a=-b.a;
+if(b.y<TOP_BARRIER+b.r||b.y>cv.height-b.r)b.a=-b.a;
+
+b.x=Math.max(b.r,Math.min(cv.width-b.r,b.x));
+b.y=Math.max(TOP_BARRIER+b.r,Math.min(cv.height-b.r,b.y));
 
 drawBall(b);
 });
