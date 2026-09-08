@@ -61,6 +61,51 @@ background:linear-gradient(to top,#ff0000,#ffaa00,#00ff00)}
 }
 .actions{margin-top:30px;display:flex;flex-direction:column;gap:14px}
 label{cursor:pointer}
+.correctionPanel{
+  margin-top:18px;
+  background:rgba(255,255,255,0.12);
+  border:1px solid rgba(255,255,255,0.22);
+  border-radius:14px;
+  padding:16px;
+}
+.snapshot{
+  position:relative;
+  width:min(520px,100%);
+  aspect-ratio: 1.75 / 1;
+  margin:14px auto 10px;
+  border-radius:14px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08), transparent 60%),
+    linear-gradient(180deg, rgba(17,24,39,0.88), rgba(17,24,39,0.96));
+  border:1px solid rgba(255,255,255,0.18);
+  overflow:hidden;
+}
+.snapshot .ball{
+  position:absolute;
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  background:linear-gradient(145deg,#f3f4f6,#9ca3af 70%,#111827);
+  border:2px solid rgba(255,255,255,0.55);
+  box-shadow:0 4px 12px rgba(0,0,0,0.35);
+  color:#111827;
+  font-weight:800;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.snapshotLabel{
+  position:absolute;
+  left:12px;
+  top:12px;
+  font-size:12px;
+  font-weight:700;
+  color:#fff;
+  background:rgba(15,23,42,0.55);
+  border:1px solid rgba(255,255,255,0.15);
+  padding:6px 10px;
+  border-radius:999px;
+}
 </style>
 <link rel="stylesheet" href="./test-theme.css">
 </head>
@@ -107,6 +152,7 @@ label{cursor:pointer}
 const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
 let level=1,errors=0,balls=[],startT,answered=false;
 let reactionTimes=[];
+let failedSnapshots=[];
 const DURATION=10000;
 
 /* ==== CALIBRATION VERROUILLÉE ==== */
@@ -142,9 +188,10 @@ document.getElementById(p).classList.add("active");
 }
 
 function startTest(){
-document.documentElement.requestFullscreen();
+document.documentElement.requestFullscreen?.();
 resize();
 level=1;errors=0;reactionTimes=[];
+failedSnapshots=[];
 show("p2");
 startLevel();
 }
@@ -241,6 +288,17 @@ handleError();
 
 function handleError(){
 errors++;
+failedSnapshots.push({
+level,
+count: balls.length,
+width: cv.width,
+height: cv.height,
+balls: balls.map((b, index)=>({
+index: index + 1,
+x: b.x,
+y: b.y,
+}))
+});
 cross.style.display="block";
 goodAnswer.innerHTML=`Bonne réponse : ${balls.length}`;
 
@@ -260,7 +318,7 @@ setTimeout(()=>finish(),2200);
 }
 
 function finish(){
-document.exitFullscreen();
+document.exitFullscreen?.();
 show("p3");
 
 const avg = reactionTimes.reduce((a,b)=>a+b,0)/reactionTimes.length || 0;
@@ -273,6 +331,20 @@ localStorage.setItem(key,JSON.stringify(hist));
 
 const best = Math.max(...hist);
 const prev = hist.length>1 ? hist[hist.length-2] : "—";
+const snapshotHtml = failedSnapshots.length ? `
+<div class="correctionPanel">
+  <b>Correction du dernier niveau perdu</b>
+  ${failedSnapshots.slice(-1).map(snap => `
+    <div class="snapshot">
+      <div class="snapshotLabel">Niveau ${snap.level} - ${snap.count} boules</div>
+      ${snap.balls.map(ball => {
+        const left = Math.max(4, Math.min(92, (ball.x / snap.width) * 100));
+        const top = Math.max(4, Math.min(92, (ball.y / snap.height) * 100));
+        return `<div class="ball" style="left:${left}%;top:${top}%">${ball.index}</div>`;
+      }).join("")}
+    </div>
+  `).join("")}
+</div>` : "";
 
 reportBox.innerHTML = `
 <b>Nom :</b> ${nom.value}<br>
@@ -284,6 +356,7 @@ reportBox.innerHTML = `
 
 <b>Meilleure performance :</b> ${best}<br>
 <b>Performance précédente :</b> ${prev}
+${snapshotHtml}
 `;
 }
 

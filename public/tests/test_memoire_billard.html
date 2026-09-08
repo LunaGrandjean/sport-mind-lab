@@ -83,12 +83,35 @@ button {
 #correction {
     display: none;
     margin-top: 20px;
-    background: rgba(255,255,255,0.72);
+    background: rgba(255,255,255,0.78);
     color: #1f2937;
     border: 2px solid #8b5e34;
     border-radius: 12px;
     padding: 16px;
     max-width: 760px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+}
+
+#correction h2 {
+    margin-bottom: 4px;
+}
+
+#correctionScreenshot {
+    margin-top: 12px;
+    padding: 18px 16px 22px;
+    border-radius: 14px;
+    background:
+        linear-gradient(180deg, rgba(139,94,52,0.08), rgba(255,255,255,0.95)),
+        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.8), transparent 32%),
+        rgba(255,255,255,0.95);
+    border: 1px solid rgba(139,94,52,0.18);
+}
+
+#correctionLabel {
+    font-size: 15px;
+    font-weight: 700;
+    color: #7c4a20;
+    margin-bottom: 10px;
 }
 
 #correctionSequence {
@@ -161,7 +184,10 @@ button {
 <div id="correction">
     <h2>Correction</h2>
     <p id="correctionText"></p>
-    <div id="correctionSequence"></div>
+    <div id="correctionScreenshot">
+        <div id="correctionLabel">Capture du niveau perdu</div>
+        <div id="correctionSequence"></div>
+    </div>
 </div>
 
 <script>
