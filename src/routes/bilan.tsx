@@ -119,6 +119,21 @@ function latestResultsByAxis(results: Result[]) {
   });
 }
 
+function bestResultsByAxis(results: Result[]) {
+  return AXES.map((axis) => {
+    const sorted = results
+      .filter((result) => result.axis === axis)
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
+    return {
+      axis,
+      result: sorted[0],
+    };
+  });
+}
+
 function scoreTone(score: number | undefined) {
   if (score === undefined) {
     return "border-slate-200 bg-slate-50 text-slate-500";
@@ -152,6 +167,7 @@ function buildExcelExport({
   endDate: string;
 }) {
   const latest = latestResultsByAxis(results);
+  const best = bestResultsByAxis(results);
   const rows = results
     .slice()
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -182,6 +198,20 @@ function buildExcelExport({
           )}</td><td>${escapeHtml(result ? formatDateTime(result.date) : "")}</td><td>${escapeHtml(
             result?.mode ?? "",
           )}</td><td>${escapeHtml(result?.commentaire ?? "")}</td></tr>`,
+      )
+      .join("")}
+  </table>
+  <h2>Meilleures perfs</h2>
+  <table border="1">
+    <tr><th>Axe</th><th>Meilleure note /20</th><th>Score brut</th><th>Date</th><th>Mode</th></tr>
+    ${best
+      .map(
+        ({ axis, result }) =>
+          `<tr><td>${escapeHtml(axis)}</td><td>${escapeHtml(result?.score ?? "")}</td><td>${escapeHtml(
+            result?.rawScore ?? "",
+          )}</td><td>${escapeHtml(result ? formatDateTime(result.date) : "")}</td><td>${escapeHtml(
+            result?.mode ?? "",
+          )}</td></tr>`,
       )
       .join("")}
   </table>
@@ -252,6 +282,7 @@ function Bilan() {
     [bilanNotes, selectedAthlete.id],
   );
   const latest = useMemo(() => latestResultsByAxis(athleteResults), [athleteResults]);
+  const bestResults = useMemo(() => bestResultsByAxis(athleteResults), [athleteResults]);
   const radarData = useMemo(
     () =>
       latest.map(({ axis, result }) => ({
@@ -568,6 +599,38 @@ function Bilan() {
               ) : null}
             </section>
           </div>
+
+          <section className="overflow-hidden rounded-lg border border-border p-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Meilleures perfs aux tests
+            </h2>
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Axe</th>
+                    <th className="px-4 py-3 font-medium">Meilleure note /20</th>
+                    <th className="px-4 py-3 font-medium">Score brut</th>
+                    <th className="px-4 py-3 font-medium">Date</th>
+                    <th className="px-4 py-3 font-medium">Mode</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {bestResults.map(({ axis, result }) => (
+                    <tr key={axis} className="align-top">
+                      <td className="px-4 py-3 font-medium">{AXIS_SHORT[axis]}</td>
+                      <td className="px-4 py-3">{result ? `${result.score}/20` : "-"}</td>
+                      <td className="px-4 py-3">{result?.rawScore ?? "-"}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {result ? formatDateTime(result.date) : "-"}
+                      </td>
+                      <td className="px-4 py-3">{result?.mode ?? "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
 
           <section className="rounded-lg border border-border p-4">
             <h2 className="bilan-section-title text-sm font-semibold uppercase tracking-wide text-muted-foreground">
