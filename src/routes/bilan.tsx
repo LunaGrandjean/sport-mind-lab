@@ -554,7 +554,25 @@ function Bilan() {
           </div>
         </div>
 
-        <div className="bilan-summary-page space-y-6 p-5">
+        <div className="bilan-summary-page space-y-4 p-5">
+          <div className="bilan-print-header hidden rounded-lg border border-border p-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-lg font-semibold text-[#08274d]">Bilan de prise en charge</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  {selectedName}
+                  {selectedAthlete.discipline ? `, ${selectedAthlete.discipline}` : ""}
+                  {selectedAthlete.poste ? ` - ${selectedAthlete.poste}` : ""}
+                </p>
+              </div>
+              <div className="text-right text-xs text-muted-foreground">
+                <p>{periodLabel}</p>
+                <p>Cabinet Neurocognitif Valentin Rumeau</p>
+                <p>7 Place Hélène Boucher - 31130 Quint-Fonsegrives</p>
+              </div>
+            </div>
+          </div>
+
           <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
             <section className="bilan-print-skip rounded-lg border border-border p-4">
               <div className="flex items-start justify-between gap-4">
@@ -685,16 +703,34 @@ function Bilan() {
               </div>
 
               <div className="bilan-radar-figure mx-auto w-full max-w-[780px] bg-white p-3">
-                <div className="mb-2 flex flex-wrap justify-center gap-2 text-[11px] font-medium">
-                  <span className="rounded-full bg-red-100 px-2 py-1 text-red-700">
-                    &lt; 8 rouge
-                  </span>
-                  <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-700">
-                    8 à 12 orange
-                  </span>
-                  <span className="rounded-full bg-green-100 px-2 py-1 text-green-700">
-                    &gt; 12 vert
-                  </span>
+                <div className="bilan-zone-legend mb-2 grid gap-2 text-[11px] font-medium sm:grid-cols-3">
+                  <div className="flex items-start gap-2 rounded-md border border-green-200 bg-green-50 px-2 py-2 text-green-900">
+                    <span className="mt-0.5 h-3 w-3 shrink-0 rounded-sm bg-green-500" />
+                    <span>
+                      <span className="block font-semibold">Zone aux valeurs supérieures</span>
+                      <span className="block text-[10px] font-normal leading-snug text-green-800">
+                        Corrélée à une plus haute performance sportive.
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-2 text-amber-900">
+                    <span className="mt-0.5 h-3 w-3 shrink-0 rounded-sm bg-amber-400" />
+                    <span>
+                      <span className="block font-semibold">Intervalle modal</span>
+                      <span className="block text-[10px] font-normal leading-snug text-amber-800">
+                        Zone où se concentrent le plus de valeurs.
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-2 py-2 text-red-900">
+                    <span className="mt-0.5 h-3 w-3 shrink-0 rounded-sm bg-red-500" />
+                    <span>
+                      <span className="block font-semibold">Zone aux valeurs inférieures</span>
+                      <span className="block text-[10px] font-normal leading-snug text-red-800">
+                        Corrélée à une incidence de blessure plus élevée.
+                      </span>
+                    </span>
+                  </div>
                 </div>
                 <div className="bilan-radar-stage relative w-full">
                   <ResponsiveContainer width="100%" height="100%">

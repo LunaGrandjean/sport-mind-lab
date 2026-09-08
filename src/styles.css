@@ -271,7 +271,7 @@
 
 @media print {
   @page {
-    margin: 12mm;
+    margin: 8mm;
   }
 
   html,
@@ -300,9 +300,7 @@
   }
 
   .bilan-cover-page {
-    min-height: 250mm;
-    page-break-after: always;
-    break-after: page;
+    display: none !important;
   }
 
   .bilan-summary-page {
@@ -313,15 +311,20 @@
     display: none !important;
   }
 
+  .bilan-print-header {
+    display: block !important;
+    margin-bottom: 4mm !important;
+  }
+
   .bilan-report-grid {
     display: grid !important;
-    grid-template-columns: 0.72fr 1.28fr !important;
-    align-items: center;
-    gap: 8mm !important;
+    grid-template-columns: 0.78fr 1.22fr !important;
+    align-items: start;
+    gap: 6mm !important;
   }
 
   .bilan-radar-stage {
-    height: 700px !important;
+    height: 470px !important;
   }
 
   .bilan-radar-figure {
@@ -329,8 +332,34 @@
     padding: 4px !important;
   }
 
+  .bilan-zone-legend {
+    margin-bottom: 3mm !important;
+  }
+
   .print-area .overflow-hidden {
     overflow: visible !important;
+  }
+
+  .bilan-report-box {
+    padding: 0.75rem !important;
+  }
+
+  .bilan-flow-arrow {
+    font-size: 2.4rem !important;
+    margin: -2mm 0 !important;
+  }
+
+  .print-text-block {
+    display: block !important;
+  }
+
+  .print-text-block p:last-child {
+    font-size: 0.78rem !important;
+    line-height: 1.35 !important;
+  }
+
+  .bilan-summary-page .grid {
+    gap: 3mm !important;
   }
 
   .bilan-title-box,
