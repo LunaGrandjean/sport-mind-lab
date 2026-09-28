@@ -116,8 +116,7 @@ function athleteMeta(athlete: Athlete) {
 }
 
 function Accueil() {
-  const { athletes, results, selectedAthlete } = useAppStore();
-  const profileLabel = athleteLabel(selectedAthlete);
+  const { athletes, results } = useAppStore();
   const topBoards = AXES.map((axis) => ({
     axis,
     entries: topByAxis(axis, athletes, results),
@@ -150,7 +149,7 @@ function Accueil() {
               <img src="/logo.png" alt="Logo du cabinet" className="h-20 w-20" />
             </span>
             <div>
-              <p className="text-sm font-semibold">Profil actif : {profileLabel}</p>
+              <p className="text-sm font-semibold">Hall of Fame global</p>
               <p className="text-xs text-muted-foreground">
                 {results.length} résultat(s) enregistré(s) pour {athletes.length} sportif(s).
               </p>

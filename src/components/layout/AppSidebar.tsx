@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Activity,
@@ -25,7 +26,7 @@ import { useAppStore } from "@/store/app-store";
 
 const NAV = [
   { to: "/", label: "Accueil", icon: Home },
-  { to: "/resultats", label: "Résultats", icon: LayoutDashboard },
+  { to: "/resultats", label: "Resultats", icon: LayoutDashboard },
   { to: "/tests", label: "Tests", icon: Activity },
   { to: "/applications", label: "Applications", icon: Dumbbell },
   { to: "/saisie", label: "Saisie", icon: PencilLine },
@@ -33,13 +34,20 @@ const NAV = [
 ] as const;
 
 const ATHLETE_PANEL_ROUTES = [
-  "/",
   "/resultats",
   "/tests",
   "/applications",
   "/saisie",
   "/bilan",
 ];
+
+function normalizeSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
 
 export function AppSidebar() {
   const {
@@ -53,13 +61,58 @@ export function AppSidebar() {
   } = useAppStore();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const showAthletePanel = ATHLETE_PANEL_ROUTES.includes(pathname);
+  const [athleteSearch, setAthleteSearch] = useState("");
+  const [athleteFormOpen, setAthleteFormOpen] = useState(false);
 
   const selectedName = fullName(selectedAthlete).trim() || "ce sportif";
+  const athleteOptions = useMemo(
+    () =>
+      athletes.map((athlete) => ({
+        athlete,
+        label: fullName(athlete).trim() || "Nouveau sportif",
+        search: normalizeSearch(fullName(athlete)),
+      })),
+    [athletes],
+  );
+
+  useEffect(() => {
+    setAthleteSearch(fullName(selectedAthlete).trim());
+  }, [selectedAthlete]);
+
+  const handleAthleteSearch = (value: string) => {
+    setAthleteSearch(value);
+    const normalized = normalizeSearch(value);
+    if (!normalized) return;
+
+    const exact = athleteOptions.find((option) => option.search === normalized);
+    if (exact) {
+      selectAthlete(exact.athlete.id);
+      setAthleteFormOpen(false);
+      return;
+    }
+
+    if (normalized.length >= 2) {
+      const prefixMatches = athleteOptions.filter((option) =>
+        option.search.startsWith(normalized),
+      );
+      if (prefixMatches.length === 1) {
+        selectAthlete(prefixMatches[0].athlete.id);
+        setAthleteFormOpen(false);
+      }
+    }
+  };
+
+  const handleNewAthleteToggle = (checked: boolean) => {
+    setAthleteFormOpen(checked);
+    if (checked) {
+      addAthlete();
+    }
+  };
 
   const handleClearAthleteData = () => {
     if (
       window.confirm(
-        `Supprimer tous les résultats, séances et bilans enregistrés pour ${selectedName} ? Le profil sportif restera disponible.`,
+        `Supprimer tous les resultats, seances et bilans enregistres pour ${selectedName} ? Le profil sportif restera disponible.`,
       )
     ) {
       clearAthleteData(selectedAthlete.id);
@@ -69,10 +122,11 @@ export function AppSidebar() {
   const handleDeleteAthlete = () => {
     if (
       window.confirm(
-        `Supprimer définitivement ${selectedName} et toutes ses données ?`,
+        `Supprimer definitivement ${selectedName} et toutes ses donnees ?`,
       )
     ) {
       deleteAthlete(selectedAthlete.id);
+      setAthleteFormOpen(false);
     }
   };
 
@@ -140,102 +194,109 @@ export function AppSidebar() {
         <div className="h-1 rounded-full bg-[linear-gradient(90deg,#0a3b66_0%,#1d8fbd_38%,#f3c400_58%,#1fa64a_76%,#c60018_100%)]" />
 
         {showAthletePanel && (
-          <section className="rounded-lg border border-cyan-100 bg-[linear-gradient(135deg,#ffffff_0%,#f0fbff_55%,#fff7f7_100%)] px-3 py-3 shadow-[var(--shadow-card)]">
-            <div className="grid gap-3 md:grid-cols-[minmax(220px,320px)_1fr]">
-              <div className="space-y-1">
-                <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  Profil sportif
+          <section className="rounded-lg border border-cyan-100 bg-white/95 px-3 py-2 shadow-[var(--shadow-card)]">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end">
+              <div className="w-full md:max-w-xs">
+                <Label
+                  htmlFor="athlete-search"
+                  className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
+                >
+                  Selection du sportif
                 </Label>
-                <div className="flex gap-2">
-                  <Select value={selectedAthlete.id} onValueChange={selectAthlete}>
-                    <SelectTrigger className="h-9 min-w-0 flex-1 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {athletes.map((athlete) => (
-                        <SelectItem key={athlete.id} value={athlete.id}>
-                          {fullName(athlete).trim() || "Nouveau sportif"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <Input
+                  id="athlete-search"
+                  list="athlete-options"
+                  className="mt-1 h-8 text-sm"
+                  value={athleteSearch}
+                  onChange={(event) => handleAthleteSearch(event.target.value)}
+                  placeholder="Tape les 2 premieres lettres..."
+                />
+                <datalist id="athlete-options">
+                  {athleteOptions.map(({ athlete, label }) => (
+                    <option key={athlete.id} value={label} />
+                  ))}
+                </datalist>
+              </div>
+
+              <label className="flex h-8 shrink-0 cursor-pointer items-center gap-2 rounded-md border border-cyan-100 bg-cyan-50 px-3 text-sm font-medium text-[#08274d]">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-[#0b7a8f]"
+                  checked={athleteFormOpen}
+                  onChange={(event) => handleNewAthleteToggle(event.target.checked)}
+                />
+                <UserPlus className="h-4 w-4" />
+                Nouveau sportif
+              </label>
+            </div>
+
+            {athleteFormOpen && (
+              <>
+                <div className="mt-3 grid gap-2 border-t border-cyan-100 pt-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+                  {field("prenom", "Prenom")}
+                  {field("nom", "Nom")}
+                  {field("age", "Age", "number")}
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Sexe
+                    </Label>
+                    <Select
+                      value={selectedAthlete.sexe}
+                      onValueChange={(value) =>
+                        updateAthlete(selectedAthlete.id, {
+                          sexe: value as "Homme" | "Femme",
+                        })
+                      }
+                    >
+                      <SelectTrigger className="h-8 w-full text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Homme">Homme</SelectItem>
+                        <SelectItem value="Femme">Femme</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {field("discipline", "Discipline")}
+                  {field("poste", "Poste")}
+                  {field("pathologie", "Pathologie")}
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Niveau sportif
+                    </Label>
+                    <Input
+                      className="h-8 text-sm"
+                      value={selectedAthlete.niveau}
+                      onChange={(event) =>
+                        updateAthlete(selectedAthlete.id, { niveau: event.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap justify-end gap-2 border-t border-cyan-100 pt-3">
                   <Button
                     type="button"
                     variant="outline"
-                    size="icon"
-                    className="h-9 w-9 shrink-0"
-                    onClick={addAthlete}
-                    title="Nouveau sportif"
+                    size="sm"
+                    className="gap-2 text-red-700 hover:bg-red-50 hover:text-red-800"
+                    onClick={handleClearAthleteData}
                   >
-                    <UserPlus className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" />
+                    Effacer les donnees
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="gap-2"
+                    onClick={handleDeleteAthlete}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Supprimer le sportif
                   </Button>
                 </div>
-              </div>
-
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
-                {field("prenom", "Prénom")}
-                {field("nom", "Nom")}
-                {field("age", "Âge", "number")}
-                <div className="space-y-1">
-                  <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Sexe
-                  </Label>
-                  <Select
-                    value={selectedAthlete.sexe}
-                    onValueChange={(value) =>
-                      updateAthlete(selectedAthlete.id, {
-                        sexe: value as "Homme" | "Femme",
-                      })
-                    }
-                  >
-                    <SelectTrigger className="h-8 w-full text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Homme">Homme</SelectItem>
-                      <SelectItem value="Femme">Femme</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {field("discipline", "Discipline")}
-                {field("poste", "Poste")}
-                {field("pathologie", "Pathologie")}
-                <div className="space-y-1">
-                  <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Niveau sportif
-                  </Label>
-                  <Input
-                    className="h-8 text-sm"
-                    value={selectedAthlete.niveau}
-                    onChange={(event) =>
-                      updateAthlete(selectedAthlete.id, { niveau: event.target.value })
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="mt-3 flex flex-wrap justify-end gap-2 border-t border-cyan-100 pt-3">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-2 text-red-700 hover:bg-red-50 hover:text-red-800"
-                onClick={handleClearAthleteData}
-              >
-                <Trash2 className="h-4 w-4" />
-                Effacer les données
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                className="gap-2"
-                onClick={handleDeleteAthlete}
-              >
-                <Trash2 className="h-4 w-4" />
-                Supprimer le sportif
-              </Button>
-            </div>
+              </>
+            )}
           </section>
         )}
       </div>
