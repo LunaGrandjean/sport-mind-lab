@@ -62,6 +62,7 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const showAthletePanel = ATHLETE_PANEL_ROUTES.includes(pathname);
   const [athleteSearch, setAthleteSearch] = useState("");
+  const [athleteSearchOpen, setAthleteSearchOpen] = useState(false);
   const [athleteFormOpen, setAthleteFormOpen] = useState(false);
 
   const selectedName = fullName(selectedAthlete).trim() || "ce sportif";
@@ -74,6 +75,14 @@ export function AppSidebar() {
       })),
     [athletes],
   );
+  const filteredAthleteOptions = useMemo(() => {
+    const normalized = normalizeSearch(athleteSearch);
+    if (normalized.length < 2) return [];
+
+    return athleteOptions
+      .filter((option) => option.search.includes(normalized))
+      .slice(0, 8);
+  }, [athleteOptions, athleteSearch]);
 
   useEffect(() => {
     setAthleteSearch(fullName(selectedAthlete).trim());
@@ -88,18 +97,18 @@ export function AppSidebar() {
     if (exact) {
       selectAthlete(exact.athlete.id);
       setAthleteFormOpen(false);
+      setAthleteSearchOpen(false);
       return;
     }
 
-    if (normalized.length >= 2) {
-      const prefixMatches = athleteOptions.filter((option) =>
-        option.search.startsWith(normalized),
-      );
-      if (prefixMatches.length === 1) {
-        selectAthlete(prefixMatches[0].athlete.id);
-        setAthleteFormOpen(false);
-      }
-    }
+    setAthleteSearchOpen(normalized.length >= 2);
+  };
+
+  const handleAthleteSelect = (athleteId: string, label: string) => {
+    selectAthlete(athleteId);
+    setAthleteSearch(label);
+    setAthleteFormOpen(false);
+    setAthleteSearchOpen(false);
   };
 
   const handleNewAthleteToggle = (checked: boolean) => {
@@ -196,7 +205,7 @@ export function AppSidebar() {
         {showAthletePanel && (
           <section className="rounded-lg border border-cyan-100 bg-white/95 px-3 py-2 shadow-[var(--shadow-card)]">
             <div className="flex flex-col gap-2 md:flex-row md:items-end">
-              <div className="w-full md:max-w-xs">
+              <div className="relative w-full md:max-w-xs">
                 <Label
                   htmlFor="athlete-search"
                   className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
@@ -205,17 +214,39 @@ export function AppSidebar() {
                 </Label>
                 <Input
                   id="athlete-search"
-                  list="athlete-options"
                   className="mt-1 h-8 text-sm"
                   value={athleteSearch}
                   onChange={(event) => handleAthleteSearch(event.target.value)}
+                  onFocus={() =>
+                    setAthleteSearchOpen(normalizeSearch(athleteSearch).length >= 2)
+                  }
+                  onBlur={() => window.setTimeout(() => setAthleteSearchOpen(false), 120)}
                   placeholder="Tape les 2 premieres lettres..."
                 />
-                <datalist id="athlete-options">
-                  {athleteOptions.map(({ athlete, label }) => (
-                    <option key={athlete.id} value={label} />
-                  ))}
-                </datalist>
+                {athleteSearchOpen && (
+                  <div className="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-cyan-100 bg-white p-1 shadow-lg">
+                    {filteredAthleteOptions.length ? (
+                      filteredAthleteOptions.map(({ athlete, label }) => (
+                        <button
+                          key={athlete.id}
+                          type="button"
+                          className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm text-slate-700 hover:bg-cyan-50 hover:text-[#06335f]"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => handleAthleteSelect(athlete.id, label)}
+                        >
+                          <span className="font-medium">{label}</span>
+                          <span className="ml-3 truncate text-xs text-muted-foreground">
+                            {[athlete.discipline, athlete.poste].filter(Boolean).join(" - ")}
+                          </span>
+                        </button>
+                      ))
+                    ) : (
+                      <p className="px-3 py-2 text-xs text-muted-foreground">
+                        Aucun sportif trouve
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <label className="flex h-8 shrink-0 cursor-pointer items-center gap-2 rounded-md border border-cyan-100 bg-cyan-50 px-3 text-sm font-medium text-[#08274d]">
