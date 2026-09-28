@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { ExternalLink, Play, Save } from "lucide-react";
+import { ExternalLink, Save } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/PageHeader";
+import { ToolAppCard } from "@/components/tools/ToolAppCard";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,7 +32,7 @@ export const Route = createFileRoute("/tests")({
       {
         name: "description",
         content:
-          "Batterie de tests neurocognitifs avec conversion automatique des résultats bruts en note radar /20.",
+          "Batterie de tests neurocognitifs avec conversion automatique des resultats bruts en note radar /20.",
       },
     ],
   }),
@@ -54,7 +55,7 @@ function Tests() {
       if (event.origin !== window.location.origin) return;
       if (event.data?.type !== "sport-mind-lab:test-result") return;
       setRawScore(String(event.data.rawScore));
-      toast.success(`${event.data.label ?? "Résultat"} détecté automatiquement`);
+      toast.success(`${event.data.label ?? "Resultat"} detecte automatiquement`);
     };
 
     window.addEventListener("message", onMessage);
@@ -72,13 +73,13 @@ function Tests() {
     if (!active?.axis) return;
     const numericRawScore = Number(rawScore);
     if (rawScore === "" || Number.isNaN(numericRawScore)) {
-      toast.error("Résultat brut invalide");
+      toast.error("Resultat brut invalide");
       return;
     }
 
     const note = noteFromRaw(active.axis, numericRawScore);
     if (note === null) {
-      toast.error("Aucune note trouvée dans le barème pour ce résultat");
+      toast.error("Aucune note trouvee dans le bareme pour ce resultat");
       return;
     }
 
@@ -94,7 +95,7 @@ function Tests() {
         source: "test",
       },
     ]);
-    toast.success(`Résultat enregistré - ${active.title} : ${note}/20`);
+    toast.success(`Resultat enregistre - ${active.title} : ${note}/20`);
     setActive(null);
   };
 
@@ -102,43 +103,36 @@ function Tests() {
     <div className="space-y-6">
       <PageHeader
         title="Tests"
-        description="Lance le test, lis son résultat brut, puis l'application calcule automatiquement la note radar /20."
+        description="Lance le test, lis son resultat brut, puis l'application calcule automatiquement la note radar /20."
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {HTML_TESTS.map((test) => (
-          <article
+          <ToolAppCard
             key={test.id}
-            className="flex flex-col rounded-lg border border-border bg-card p-5 shadow-[var(--shadow-card)]"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <h2 className="text-sm font-semibold">{test.title}</h2>
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                /20
-              </span>
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">{test.description}</p>
-            <div className="mt-4 space-y-2 rounded-md bg-muted px-3 py-3 text-xs text-muted-foreground">
-              <p>
-                <span className="font-medium text-foreground">Objectif :</span>{" "}
-                {test.objective}
-              </p>
-              <p>
-                <span className="font-medium text-foreground">Consigne :</span>{" "}
-                {test.instructions}
-              </p>
-              {test.axis && (
+            tool={test}
+            badge="/20"
+            actionLabel="Lancer le test"
+            onLaunch={() => launch(test)}
+            details={
+              <div className="space-y-2">
                 <p>
-                  <span className="font-medium text-foreground">Barème :</span>{" "}
-                  {baremeForAxis(test.axis).label}
+                  <span className="font-medium text-foreground">Objectif :</span>{" "}
+                  {test.objective}
                 </p>
-              )}
-            </div>
-            <Button className="mt-4 w-full gap-2" onClick={() => launch(test)}>
-              <Play className="h-4 w-4" />
-              Lancer le test
-            </Button>
-          </article>
+                <p>
+                  <span className="font-medium text-foreground">Consigne :</span>{" "}
+                  {test.instructions}
+                </p>
+                {test.axis && (
+                  <p>
+                    <span className="font-medium text-foreground">Bareme :</span>{" "}
+                    {baremeForAxis(test.axis).label}
+                  </p>
+                )}
+              </div>
+            }
+          />
         ))}
       </div>
 
@@ -147,8 +141,8 @@ function Tests() {
           <DialogHeader className="shrink-0 border-b border-border px-5 py-4">
             <DialogTitle>{active?.title}</DialogTitle>
             <DialogDescription>
-              Le test HTML est chargé dans l'application. Le panneau sons flottant peut
-              rester actif en parallèle.
+              Le test HTML est charge dans l'application. Le panneau sons flottant peut
+              rester actif en parallele.
             </DialogDescription>
           </DialogHeader>
 
@@ -166,15 +160,15 @@ function Tests() {
 
             <aside className="max-h-[68vh] space-y-4 overflow-y-auto border-l border-border bg-card p-5 lg:max-h-none">
               <div>
-                <p className="text-sm font-semibold">Conversion barème</p>
+                <p className="text-sm font-semibold">Conversion bareme</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Renseigne le résultat brut affiché par le test. La note radar /20 est
-                  calculée automatiquement.
+                  Renseigne le resultat brut affiche par le test. La note radar /20 est
+                  calculee automatiquement.
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label>{activeBareme?.rawLabel ?? "Résultat brut"}</Label>
+                <Label>{activeBareme?.rawLabel ?? "Resultat brut"}</Label>
                 <Input
                   type="number"
                   step="any"
@@ -192,7 +186,7 @@ function Tests() {
                 </p>
                 {activeBareme && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Barème utilisé : {activeBareme.label}
+                    Bareme utilise : {activeBareme.label}
                   </p>
                 )}
               </div>

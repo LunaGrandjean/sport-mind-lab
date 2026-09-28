@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { ExternalLink, Play } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/PageHeader";
+import { ToolAppCard } from "@/components/tools/ToolAppCard";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,11 +22,11 @@ import { useAppStore } from "@/store/app-store";
 export const Route = createFileRoute("/applications")({
   head: () => ({
     meta: [
-      { title: "Applications de travail — cabinet sportif" },
+      { title: "Applications de travail - cabinet sportif" },
       {
         name: "description",
         content:
-          "Applications d'entraînement et de double tâche : sons, dés, défilement, laser, Komboid et mémoire en mouvement.",
+          "Applications d'entrainement et de double tache : sons, des, defilement, laser, Komboid et memoire en mouvement.",
       },
     ],
   }),
@@ -40,37 +41,30 @@ function Applications() {
     <div className="space-y-6">
       <PageHeader
         title="Applications de travail"
-        description="Outils d'entraînement et de double tâche. Ils peuvent être utilisés avec le panneau sons flottant."
+        description="Outils d'entrainement et de double tache. Ils peuvent etre utilises avec le panneau sons flottant."
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {PRACTICE_APPS.map((app) => (
-          <article
+          <ToolAppCard
             key={app.id}
-            className="flex flex-col rounded-lg border border-border bg-card p-5 shadow-[var(--shadow-card)]"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <h2 className="text-sm font-semibold">{app.title}</h2>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                Travail
-              </span>
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">{app.description}</p>
-            <div className="mt-4 space-y-2 rounded-md bg-muted px-3 py-3 text-xs text-muted-foreground">
-              <p>
-                <span className="font-medium text-foreground">Objectif :</span>{" "}
-                {app.objective}
-              </p>
-              <p>
-                <span className="font-medium text-foreground">Consigne :</span>{" "}
-                {app.instructions}
-              </p>
-            </div>
-            <Button className="mt-4 w-full gap-2" onClick={() => setActive(app)}>
-              <Play className="h-4 w-4" />
-              Lancer l'application
-            </Button>
-          </article>
+            tool={app}
+            badge="Travail"
+            actionLabel="Lancer l'application"
+            onLaunch={() => setActive(app)}
+            details={
+              <div className="space-y-2">
+                <p>
+                  <span className="font-medium text-foreground">Objectif :</span>{" "}
+                  {app.objective}
+                </p>
+                <p>
+                  <span className="font-medium text-foreground">Consigne :</span>{" "}
+                  {app.instructions}
+                </p>
+              </div>
+            }
+          />
         ))}
       </div>
 
@@ -81,7 +75,7 @@ function Applications() {
               <div>
                 <DialogTitle>{active?.title}</DialogTitle>
                 <DialogDescription>
-                  Application chargée dans l'interface. Le panneau sons peut rester ouvert
+                  Application chargee dans l'interface. Le panneau sons peut rester ouvert
                   pendant l'exercice.
                 </DialogDescription>
               </div>
