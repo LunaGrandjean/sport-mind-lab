@@ -224,7 +224,7 @@ function ToolIcon({ id }: { id: string }) {
 
   return (
     <div
-      className={`relative grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-[22px] bg-gradient-to-br ${toneClass[config.tone]} shadow-[0_12px_28px_rgba(8,39,77,0.18),inset_0_1px_0_rgba(255,255,255,0.65)] ring-1 ring-white/70`}
+      className={`relative grid h-[84px] w-[84px] shrink-0 place-items-center overflow-hidden rounded-[18px] bg-gradient-to-br ${toneClass[config.tone]} shadow-[0_10px_22px_rgba(8,39,77,0.14),inset_0_1px_0_rgba(255,255,255,0.65)] ring-1 ring-cyan-100/80`}
     >
       {imageSrc ? (
         <>
@@ -261,29 +261,33 @@ export function ToolAppCard({
   details: ReactNode;
 }) {
   return (
-    <article className="group flex min-h-[300px] flex-col rounded-lg border border-cyan-100 bg-white p-4 shadow-[var(--shadow-card)] transition duration-200 hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-lg">
+    <article className="group flex h-full min-h-[254px] flex-col rounded-2xl border border-cyan-100/90 bg-white p-4 shadow-[0_1px_2px_rgba(8,39,77,0.05),0_14px_32px_rgba(8,39,77,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-[0_8px_18px_rgba(8,39,77,0.08),0_18px_42px_rgba(8,39,77,0.08)]">
       <div className="flex items-start gap-4">
         <ToolIcon id={tool.id} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <h2 className="text-base font-semibold leading-tight text-[#08274d]">
+          <div className="flex items-start justify-between gap-3">
+            <h2 className="text-[15px] font-semibold leading-snug text-[#08274d]">
               {tool.title}
             </h2>
-            <span className="shrink-0 rounded-full bg-cyan-50 px-2 py-0.5 text-[11px] font-medium text-[#0b7a8f] ring-1 ring-cyan-100">
+            <span className="shrink-0 rounded-full bg-cyan-50 px-2.5 py-1 text-[11px] font-semibold text-[#0b7a8f] ring-1 ring-cyan-100">
               {badge}
             </span>
           </div>
-          <p className="mt-2 text-sm leading-snug text-muted-foreground">
+          <p className="mt-1.5 text-sm leading-snug text-muted-foreground">
             {tool.description}
           </p>
         </div>
       </div>
 
-      <div className="mt-4 flex-1 rounded-md border border-cyan-100 bg-[linear-gradient(135deg,#f8fdff_0%,#fffdf7_100%)] px-3 py-3 text-xs leading-relaxed text-muted-foreground">
+      <div className="mt-3 flex-1 border-t border-cyan-100/80 pt-3 text-xs leading-relaxed text-muted-foreground">
         {details}
       </div>
 
-      <Button className="mt-4 w-full gap-2" onClick={onLaunch}>
+      <Button
+        size="sm"
+        className="mt-4 h-9 w-full rounded-xl bg-[#08274d] font-semibold shadow-[0_8px_18px_rgba(8,39,77,0.16)] hover:bg-[#06335f] hover:shadow-[0_10px_22px_rgba(8,39,77,0.2)]"
+        onClick={onLaunch}
+      >
         <Play className="h-4 w-4" />
         {actionLabel}
       </Button>

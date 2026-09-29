@@ -100,13 +100,18 @@ function Tests() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Tests"
         description="Lance le test, lis son resultat brut, puis l'application calcule automatiquement la note radar /20."
+        actions={
+          <span className="rounded-full border border-cyan-100 bg-white px-3 py-1 text-xs font-semibold text-[#0b7a8f] shadow-sm">
+            {HTML_TESTS.length} tests disponibles
+          </span>
+        }
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid items-stretch gap-4 md:grid-cols-2">
         {HTML_TESTS.map((test) => (
           <ToolAppCard
             key={test.id}
@@ -115,18 +120,20 @@ function Tests() {
             actionLabel="Lancer le test"
             onLaunch={() => launch(test)}
             details={
-              <div className="space-y-2">
-                <p>
-                  <span className="font-medium text-foreground">Objectif :</span>{" "}
-                  {test.objective}
-                </p>
-                <p>
-                  <span className="font-medium text-foreground">Consigne :</span>{" "}
+              <div className="space-y-2.5">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[#0b7a8f]">
+                    Objectif
+                  </p>
+                  <p className="mt-0.5 text-[13px] leading-snug text-slate-700">
+                    {test.objective}
+                  </p>
+                </div>
+                <p className="text-[12px] leading-snug text-muted-foreground">
                   {test.instructions}
                 </p>
                 {test.axis && (
-                  <p>
-                    <span className="font-medium text-foreground">Bareme :</span>{" "}
+                  <p className="inline-flex rounded-full bg-cyan-50 px-2.5 py-1 text-[11px] font-medium text-[#0b7a8f] ring-1 ring-cyan-100">
                     {baremeForAxis(test.axis).label}
                   </p>
                 )}

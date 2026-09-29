@@ -203,53 +203,55 @@ export function AppSidebar() {
         <div className="h-1 rounded-full bg-[linear-gradient(90deg,#0a3b66_0%,#1d8fbd_38%,#f3c400_58%,#1fa64a_76%,#c60018_100%)]" />
 
         {showAthletePanel && (
-          <section className="rounded-lg border border-cyan-100 bg-white/95 px-3 py-2 shadow-[var(--shadow-card)]">
-            <div className="flex flex-col gap-2 md:flex-row md:items-end">
-              <div className="relative w-full md:max-w-xs">
+          <section className="rounded-xl border border-cyan-100 bg-white/95 px-3 py-2 shadow-[0_1px_2px_rgba(8,39,77,0.05),0_10px_24px_rgba(8,39,77,0.05)]">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center">
+              <div className="flex w-full flex-col gap-1 md:max-w-sm md:flex-row md:items-center">
                 <Label
                   htmlFor="athlete-search"
-                  className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
+                  className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-[#0b7a8f] md:w-32"
                 >
                   Selection du sportif
                 </Label>
-                <Input
-                  id="athlete-search"
-                  className="mt-1 h-8 text-sm"
-                  value={athleteSearch}
-                  onChange={(event) => handleAthleteSearch(event.target.value)}
-                  onFocus={() =>
-                    setAthleteSearchOpen(normalizeSearch(athleteSearch).length >= 2)
-                  }
-                  onBlur={() => window.setTimeout(() => setAthleteSearchOpen(false), 120)}
-                  placeholder="Tape les 2 premieres lettres..."
-                />
-                {athleteSearchOpen && (
-                  <div className="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-cyan-100 bg-white p-1 shadow-lg">
-                    {filteredAthleteOptions.length ? (
-                      filteredAthleteOptions.map(({ athlete, label }) => (
-                        <button
-                          key={athlete.id}
-                          type="button"
-                          className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm text-slate-700 hover:bg-cyan-50 hover:text-[#06335f]"
-                          onMouseDown={(event) => event.preventDefault()}
-                          onClick={() => handleAthleteSelect(athlete.id, label)}
-                        >
-                          <span className="font-medium">{label}</span>
-                          <span className="ml-3 truncate text-xs text-muted-foreground">
-                            {[athlete.discipline, athlete.poste].filter(Boolean).join(" - ")}
-                          </span>
-                        </button>
-                      ))
-                    ) : (
-                      <p className="px-3 py-2 text-xs text-muted-foreground">
-                        Aucun sportif trouve
-                      </p>
-                    )}
-                  </div>
-                )}
+                <div className="relative min-w-0 flex-1">
+                  <Input
+                    id="athlete-search"
+                    className="h-8 rounded-lg border-cyan-100 bg-cyan-50/45 text-sm shadow-none focus-visible:ring-cyan-300"
+                    value={athleteSearch}
+                    onChange={(event) => handleAthleteSearch(event.target.value)}
+                    onFocus={() =>
+                      setAthleteSearchOpen(normalizeSearch(athleteSearch).length >= 2)
+                    }
+                    onBlur={() => window.setTimeout(() => setAthleteSearchOpen(false), 120)}
+                    placeholder="Tape les 2 premieres lettres..."
+                  />
+                  {athleteSearchOpen && (
+                    <div className="absolute left-0 top-full z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-cyan-100 bg-white p-1 shadow-lg">
+                      {filteredAthleteOptions.length ? (
+                        filteredAthleteOptions.map(({ athlete, label }) => (
+                          <button
+                            key={athlete.id}
+                            type="button"
+                            className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm text-slate-700 hover:bg-cyan-50 hover:text-[#06335f]"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => handleAthleteSelect(athlete.id, label)}
+                          >
+                            <span className="font-medium">{label}</span>
+                            <span className="ml-3 truncate text-xs text-muted-foreground">
+                              {[athlete.discipline, athlete.poste].filter(Boolean).join(" - ")}
+                            </span>
+                          </button>
+                        ))
+                      ) : (
+                        <p className="px-3 py-2 text-xs text-muted-foreground">
+                          Aucun sportif trouve
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <label className="flex h-8 shrink-0 cursor-pointer items-center gap-2 rounded-md border border-cyan-100 bg-cyan-50 px-3 text-sm font-medium text-[#08274d]">
+              <label className="flex h-8 shrink-0 cursor-pointer items-center gap-2 rounded-lg border border-cyan-100 bg-cyan-50/80 px-3 text-sm font-medium text-[#08274d] transition-colors hover:bg-cyan-100/70">
                 <input
                   type="checkbox"
                   className="h-4 w-4 accent-[#0b7a8f]"

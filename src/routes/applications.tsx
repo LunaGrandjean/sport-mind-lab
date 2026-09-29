@@ -38,13 +38,18 @@ function Applications() {
   const [active, setActive] = useState<HtmlTool | null>(null);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Applications de travail"
         description="Outils d'entrainement et de double tache. Ils peuvent etre utilises avec le panneau sons flottant."
+        actions={
+          <span className="rounded-full border border-cyan-100 bg-white px-3 py-1 text-xs font-semibold text-[#0b7a8f] shadow-sm">
+            {PRACTICE_APPS.length} applications
+          </span>
+        }
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid items-stretch gap-4 md:grid-cols-2">
         {PRACTICE_APPS.map((app) => (
           <ToolAppCard
             key={app.id}
@@ -53,13 +58,16 @@ function Applications() {
             actionLabel="Lancer l'application"
             onLaunch={() => setActive(app)}
             details={
-              <div className="space-y-2">
-                <p>
-                  <span className="font-medium text-foreground">Objectif :</span>{" "}
-                  {app.objective}
-                </p>
-                <p>
-                  <span className="font-medium text-foreground">Consigne :</span>{" "}
+              <div className="space-y-2.5">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[#0b7a8f]">
+                    Objectif
+                  </p>
+                  <p className="mt-0.5 text-[13px] leading-snug text-slate-700">
+                    {app.objective}
+                  </p>
+                </div>
+                <p className="text-[12px] leading-snug text-muted-foreground">
                   {app.instructions}
                 </p>
               </div>
