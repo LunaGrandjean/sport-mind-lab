@@ -13,6 +13,14 @@ import { baremeForAxis, noteFromRaw } from "@/lib/scoring";
 import { MANUAL_SCORE_AXES } from "@/lib/test-definitions";
 import { useAppStore } from "@/store/app-store";
 
+const axisImages: Partial<Record<Axis, string>> = {
+  "Dissociation motrice": "/cps.png",
+  "PrÃ©cision motrice": "/precision-motrice.png",
+  Attention: "/attention.png",
+  Inhibition: "/inhibition.png",
+  "Temps perception / traitement / dÃ©cision / rÃ©action": "/temps-de-perception.png",
+};
+
 function emptyManualScores() {
   return Object.fromEntries(MANUAL_SCORE_AXES.map((axis) => [axis, ""])) as Record<
     Axis,
@@ -102,9 +110,22 @@ function Saisie() {
 
             return (
               <div key={axis} className="space-y-2 rounded-md border border-border p-3">
-                <div>
-                  <Label>{axis}</Label>
-                  <p className="mt-1 text-xs text-muted-foreground">{bareme.label}</p>
+                <div className="flex items-start gap-3">
+                  {axisImages[axis] && (
+                    <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl border border-cyan-100 bg-white shadow-sm">
+                      <img
+                        src={axisImages[axis]}
+                        alt=""
+                        aria-hidden="true"
+                        className="h-full w-full object-contain p-1.5"
+                        loading="lazy"
+                      />
+                    </span>
+                  )}
+                  <div>
+                    <Label>{axis}</Label>
+                    <p className="mt-1 text-xs text-muted-foreground">{bareme.label}</p>
+                  </div>
                 </div>
                 <Input
                   type="number"

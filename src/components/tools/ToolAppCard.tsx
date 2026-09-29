@@ -21,6 +21,22 @@ import type { HtmlTool } from "@/lib/test-definitions";
 
 type IconTone = "blue" | "cyan" | "green" | "amber" | "red" | "slate" | "violet";
 
+const toolImages: Record<string, string> = {
+  "attention": "/attention.png",
+  "captation-visuelle": "/captation-inof-visuelle.png",
+  "cps": "/cps.png",
+  "inhibition": "/inhibition.png",
+  "memoire-billard": "/memoire.png",
+  "memoire-defilement": "/memoire.png",
+  "precision-motrice": "/precision-motrice.png",
+  "suivi-laser": "/precision-motrice.png",
+  "suivi-multi-objets": "/suivi visuel.png",
+  "temps-perception": "/temps-de-perception.png",
+  "triple-tache": "/traitement.png",
+  "komboid": "/traitement.png",
+  "vision-peripherique": "/vision-periphérique.png",
+};
+
 const toneClass: Record<IconTone, string> = {
   blue: "from-[#dff7ff] via-[#74d8ff] to-[#00518a]",
   cyan: "from-[#e8fbff] via-[#59d7ef] to-[#0b7a8f]",
@@ -199,14 +215,30 @@ function iconConfig(id: string): { tone: IconTone; art: ReactNode } {
 }
 
 function ToolIcon({ id }: { id: string }) {
+  const imageSrc = toolImages[id];
   const config = iconConfig(id);
 
   return (
     <div
       className={`relative grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-[22px] bg-gradient-to-br ${toneClass[config.tone]} shadow-[0_12px_28px_rgba(8,39,77,0.18),inset_0_1px_0_rgba(255,255,255,0.65)] ring-1 ring-white/70`}
     >
-      <span className="absolute inset-x-2 top-1 h-8 rounded-full bg-white/35 blur-xl" />
-      {config.art}
+      {imageSrc ? (
+        <>
+          <span className="absolute inset-0 bg-white" />
+          <img
+            src={imageSrc}
+            alt=""
+            aria-hidden="true"
+            className="relative h-full w-full object-contain p-2"
+            loading="lazy"
+          />
+        </>
+      ) : (
+        <>
+          <span className="absolute inset-x-2 top-1 h-8 rounded-full bg-white/35 blur-xl" />
+          {config.art}
+        </>
+      )}
     </div>
   );
 }
