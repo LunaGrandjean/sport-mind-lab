@@ -5,4 +5,10 @@ saveTextLockfile = true
 minimumReleaseAge = 86400
 
 # Kept because vite.config.ts still uses this build helper.
-minimumReleaseAgeExcludes = ["@lovable.dev/vite-tanstack-config"]
+# TanStack packages are excluded so the security patch can deploy immediately.
+minimumReleaseAgeExcludes = [
+  "@lovable.dev/vite-tanstack-config",
+  "@tanstack/react-start",
+  "@tanstack/router-plugin",
+  "@tanstack/start-server-core",
+]
