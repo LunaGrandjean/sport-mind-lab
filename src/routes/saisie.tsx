@@ -21,6 +21,20 @@ const axisImages: Partial<Record<Axis, string>> = {
   "Temps perception / traitement / dÃ©cision / rÃ©action": "/temps-de-perception.png",
 };
 
+axisImages["Dissociation motrice"] = "/dissociation-motrice.png";
+
+const precisionAxis = MANUAL_SCORE_AXES.find((axis) => axis.includes("cision motrice"));
+if (precisionAxis) {
+  axisImages[precisionAxis] = "/precision-motrice.png";
+}
+
+const reactionTimeAxis = MANUAL_SCORE_AXES.find((axis) =>
+  axis.startsWith("Temps perception"),
+);
+if (reactionTimeAxis) {
+  axisImages[reactionTimeAxis] = "/temps-de-preceptiontraitementdecisionreaction.jpg";
+}
+
 function emptyManualScores() {
   return Object.fromEntries(MANUAL_SCORE_AXES.map((axis) => [axis, ""])) as Record<
     Axis,
