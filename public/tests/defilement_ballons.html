@@ -16,7 +16,14 @@
   .check{display:flex;gap:10px;align-items:center;margin:8px 0}
   .check input{width:auto}
   #arena{position:relative;width:100%;height:calc(100vh - 70px);background:white;border-radius:0;overflow:hidden}
-  .ball{position:absolute;font-size:100px;user-select:none;will-change:transform;pointer-events:none}
+  .ball{position:absolute;left:0;top:0;width:120px;height:120px;user-select:none;will-change:transform;pointer-events:none}
+  .ball,.ball-preview{background-repeat:no-repeat;background-size:300% 100%;background-position:0% 50%}
+  .ball-preview{display:block;width:56px;height:56px;flex:0 0 56px}
+  .ball-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}
+  .ball-options .check{margin:0;cursor:pointer}
+  .ball-options input{margin:0;flex-shrink:0}
+  .ball-help{font-size:14px;line-height:1.5}
+  @media(max-width:520px){.ball-options{grid-template-columns:1fr}}
   .hud{display:flex;justify-content:space-between;margin-bottom:15px}
   .center{text-align:center}.good{color:#7CFF79}.bad{color:#FF7070}
 </style>
@@ -72,12 +79,18 @@
       <option>tous-sens</option>
     </select>
 
-    <label>Ballons à afficher</label>
-    <div class="check"><input type="checkbox" id="rugby" checked>🏉 Rugby</div>
-    <div class="check"><input type="checkbox" id="football" checked>⚽ Football</div>
-    <div class="check"><input type="checkbox" id="american" checked>🏈 Football américain</div>
+    <p><b>Ballons à afficher</b></p>
+    <div class="ball-options">
+      <label class="check" for="rugby"><input type="checkbox" id="rugby" checked><span class="ball-preview" data-ball-preview="rugby" aria-hidden="true"></span>Rugby</label>
+      <label class="check" for="football"><input type="checkbox" id="football" checked><span class="ball-preview" data-ball-preview="football" aria-hidden="true"></span>Football</label>
+      <label class="check" for="american"><input type="checkbox" id="american" checked><span class="ball-preview" data-ball-preview="american" aria-hidden="true"></span>Football américain</label>
+      <label class="check" for="basketball"><input type="checkbox" id="basketball"><span class="ball-preview" data-ball-preview="basketball" aria-hidden="true"></span>Basket</label>
+      <label class="check" for="handball"><input type="checkbox" id="handball"><span class="ball-preview" data-ball-preview="handball" aria-hidden="true"></span>Handball</label>
+      <label class="check" for="beach-volley"><input type="checkbox" id="beach-volley"><span class="ball-preview" data-ball-preview="beach-volley" aria-hidden="true"></span>Beach-volley</label>
+    </div>
+    <p class="ball-help">Trois coloris par sport. Comptez les ballons du sport demandé, quelle que soit leur couleur.</p>
 
-    <button onclick="startSession()">DÉMARRER</button>
+    <button id="startButton" onclick="startSession()">DÉMARRER</button>
   </div>
 </section>
 
@@ -120,6 +133,45 @@
 </section>
 
 <script>
+const BALL_TYPES = {
+  rugby:{label:'Rugby',questionLabel:'rugby',image:'./balls/rugby.png'},
+  football:{label:'Football',questionLabel:'football',image:'./balls/football.png'},
+  american:{label:'Football américain',questionLabel:'football américain',image:'./balls/american.png'},
+  basketball:{label:'Basket',questionLabel:'basket',image:'./balls/basketball.png'},
+  handball:{label:'Handball',questionLabel:'handball',image:'./balls/handball.png'},
+  'beach-volley':{label:'Beach-volley',questionLabel:'beach-volley',image:'./balls/beach-volley.png'}
+};
+const ballImages = new Map();
+
+function setBallAppearance(element,type,variant){
+  element.style.backgroundImage = `url("${BALL_TYPES[type].image}")`;
+  element.style.backgroundPosition = `${variant*50}% 50%`;
+}
+
+document.querySelectorAll('[data-ball-preview]').forEach(preview=>{
+  setBallAppearance(preview,preview.dataset.ballPreview,0);
+});
+
+function typesForLevel(){
+  return state.mode==='2'
+    ? [...new Set([...state.selected,'rugby','football','american'])]
+    : [...state.selected];
+}
+
+function preloadBallImages(types){
+  return Promise.all(types.map(type=>{
+    if(!ballImages.has(type)){
+      const image = new Image();
+      image.src = BALL_TYPES[type].image;
+      ballImages.set(type,image.decode().catch(error=>{
+        ballImages.delete(type);
+        throw error;
+      }));
+    }
+    return ballImages.get(type);
+  }));
+}
+
 const LEVELS = {
   1:{speed:8000,varSpeed:false,max:10,curve:0,density:1,size:1},
   2:{speed:7000,varSpeed:false,max:10,curve:0,density:1,size:1},
@@ -151,17 +203,24 @@ function showPage(id){
   document.getElementById(id).classList.add('active');
 }
 
-function startSession(){
+async function startSession(){
   state.nom = nom.value; state.prenom = prenom.value; state.age = age.value;
   state.mode = mode.value; state.direction = direction.value;
-  state.selected = [];
-  if(rugby.checked) state.selected.push('rugby');
-  if(football.checked) state.selected.push('football');
-  if(american.checked) state.selected.push('american');
+  state.selected = Object.keys(BALL_TYPES).filter(type=>document.getElementById(type).checked);
   if(state.selected.length===0){ alert('Sélectionnez au moins un ballon'); return; }
   state.level = Number(startLevel.value); state.bestLevel = 0;
   state.attempts = [];
-  runLevel();
+  startButton.disabled=true;
+  startButton.textContent='Chargement des ballons…';
+  try{
+    await preloadBallImages(typesForLevel());
+    runLevel();
+  } catch(error){
+    alert('Impossible de charger les images des ballons. Veuillez réessayer.');
+  } finally{
+    startButton.disabled=false;
+    startButton.textContent='DÉMARRER';
+  }
 }
 
 function runLevel(){
@@ -188,18 +247,12 @@ function launchTest(){
   activeIntervals.forEach(clearInterval);
   activeIntervals = [];
 
-  state.counts = {rugby:0, football:0, american:0};
+  state.counts = Object.fromEntries(Object.keys(BALL_TYPES).map(type=>[type,0]));
 
   // Chaque type reçoit un nombre TOTAL aléatoire pour le niveau,
   // puis chaque ballon est injecté à un moment aléatoire sur les 30 secondes.
-  let typesToUse = [...state.selected];
-
-  // Mode 2 : le rugby est la cible, les autres servent de distracteurs
-  if(state.mode==='2'){
-    if(!typesToUse.includes('rugby')) typesToUse.push('rugby');
-    if(!typesToUse.includes('football')) typesToUse.push('football');
-    if(!typesToUse.includes('american')) typesToUse.push('american');
-  }
+  // Mode 2 : le rugby est la cible, les autres servent de distracteurs.
+  const typesToUse = typesForLevel();
 
   typesToUse.forEach(type=>{
     // Difficulté intelligente : densité variable selon niveau + randomisation
@@ -223,11 +276,13 @@ function launchTest(){
   },1000);
 }
 
-function getEmoji(type){ return type==='rugby'?'🏉':type==='football'?'⚽':'🏈'; }
-
 function spawnBall(type,cfg){
   const ball=document.createElement('div');
-  ball.className='ball'; ball.textContent=getEmoji(type);
+  ball.className='ball';
+  ball.dataset.sport=type;
+  ball.setAttribute('role','img');
+  ball.setAttribute('aria-label',`Ballon de ${BALL_TYPES[type].questionLabel}`);
+  setBallAppearance(ball,type,Math.floor(Math.random()*3));
   arena.appendChild(ball);
   animateBall(ball,cfg);
 }
@@ -265,7 +320,7 @@ function animateBall(ball,cfg){
   }
 
   // Taille adaptative selon difficulté
-  ball.style.fontSize = `${100 * cfg.size}px`;
+  ball.style.width = ball.style.height = `${120 * cfg.size}px`;
 
   // Rotation naturelle aléatoire
   const rotationStart = Math.random()*360;
@@ -318,7 +373,7 @@ function askQuestion(){
   let options = state.mode==='2' ? ['rugby'] : state.selected;
   state.askedType = options[Math.floor(Math.random()*options.length)];
   state.correctAnswer = state.counts[state.askedType] || 0;
-  const label = state.askedType==='rugby'?'rugby':state.askedType==='football'?'football':'football américain';
+  const label = BALL_TYPES[state.askedType].questionLabel;
   question.textContent = `Combien y avait-il de ballons de ${label} ?`;
   answer.value='';
 }
@@ -349,7 +404,7 @@ function resetApp(){
 function renderSummary(){
   const attempts = state.attempts.length
     ? `<ul>${state.attempts.map((a, index) => `
-        <li>Essai ${index + 1} - Niveau ${a.level} - ${a.askedType} : réponse ${a.answer}, attendu ${a.expected} (${a.ok ? 'réussi' : 'échoué'})</li>
+        <li>Essai ${index + 1} - Niveau ${a.level} - ${BALL_TYPES[a.askedType].label} : réponse ${a.answer}, attendu ${a.expected} (${a.ok ? 'réussi' : 'échoué'})</li>
       `).join('')}</ul>`
     : '<p>Aucun essai terminé.</p>';
 
@@ -360,7 +415,7 @@ function renderSummary(){
     <p><b>Âge :</b> ${state.age}</p>
     <p><b>Mode :</b> ${state.mode}</p>
     <p><b>Sens :</b> ${state.direction}</p>
-    <p><b>Ballons choisis :</b> ${state.selected.join(', ')}</p>
+    <p><b>Ballons choisis :</b> ${state.selected.map(type=>BALL_TYPES[type].label).join(', ')}</p>
     <p><b>Niveau atteint réussi :</b> ${state.bestLevel}</p>
     <h3>Détail des essais</h3>
     ${attempts}`;

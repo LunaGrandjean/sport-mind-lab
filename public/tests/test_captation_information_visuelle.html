@@ -248,6 +248,11 @@ function stimuliMatch(first, second){
 
 function stimulusSnapshot(el, label, stimulus){
     const clone = el.cloneNode(true);
+    const renderedStyle = getComputedStyle(el);
+    // Figer les bordures calculées : une bordure avec var() peut se perdre dans outerHTML.
+    for(const side of ["Top", "Right", "Bottom", "Left"]){
+        clone.style[`border${side}`] = `${renderedStyle[`border${side}Width`]} ${renderedStyle[`border${side}Style`]} ${renderedStyle[`border${side}Color`]}`;
+    }
     clone.removeAttribute("id");
     clone.classList.add("review-shape");
     clone.style.visibility = "visible";
