@@ -80,7 +80,7 @@ export const PRACTICE_APPS: HtmlTool[] = [
     title: "Suivi de laser",
     type: "application",
     htmlPath: "/tests/Suivi-des-lasers.html",
-    description: "Pointage de cibles, suivi continu et mode Pac-Man.",
+    description: "Pointage fixe ou dynamique, suivi de cibles et mode Pac-Man.",
     objective: "Travailler la coordination visuo-motrice et la précision.",
     instructions: "Choisir le mode, le niveau puis réaliser la tâche.",
   },

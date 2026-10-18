@@ -28,9 +28,11 @@
   <div class="panel">
     <h1>Suivi de laser</h1>
     <div class="row">
-      <label><input type="radio" name="mode" value="1" checked> Mode 1 - Pointer 20 cibles</label><br>
-      <label><input type="radio" name="mode" value="2"> Mode 2 - Suivi de cible</label><br>
-      <label><input type="radio" name="mode" value="3"> Mode 3 - Pacman</label>
+      <label><input type="radio" name="mode" value="1" checked> Pointer — 20 cibles</label><br>
+      <label><input type="radio" name="mode" value="4"> Pointer dynamique</label><br>
+      <label><input type="radio" name="mode" value="2"> Cibles en mouvement</label><br>
+      <label><input type="radio" name="mode" value="3"> Pacman</label>
+      <p>Pointer et Pointer dynamique : validez chaque cible avec la barre d’espace. En Pointer dynamique, les cibles et les distracteurs se déplacent.</p>
     </div>
     <div class="row">
       <label>Niveau : <input id="level" type="number" min="1" max="20" value="1"></label>
@@ -50,6 +52,7 @@ let state={mode:1,level:1,start:0,current:0};
 let currentMode1Target=null;
 let currentDistractors=[];
 let mode1TimerInterval=null;
+let pointerAnimation=null;
 let followRunning=false;
 let followElapsed=0;
 let followStartTime=0;
@@ -66,6 +69,11 @@ function forceFullscreen(){
   else if(el.msRequestFullscreen) el.msRequestFullscreen();
 }
 function show(id){
+  if(id!=='arena'){
+    stopPointerMovement();
+    clearInterval(mode1TimerInterval);
+    mode1TimerInterval=null;
+  }
   screens.forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   forceFullscreen();
@@ -102,6 +110,7 @@ function launchMode(){
 }
 function startSelectedMode(){
   if(state.mode===1) startMode1();
+  else if(state.mode===4) startMode1(true);
   else if(state.mode===2) startMode2();
   else startMode3();
 }
@@ -156,7 +165,55 @@ function distractorConfig(level){
   while(arr.length<10) arr.push({bg:'yellow',border:'orange',size:'same', dashed:true});
   return arr;
 }
-function startMode1(){
+function stopPointerMovement(){
+  if(pointerAnimation!==null) cancelAnimationFrame(pointerAnimation);
+  pointerAnimation=null;
+}
+
+function startPointerMovement(elements){
+  stopPointerMovement();
+  const arena=document.getElementById('arena');
+  const speed=90+state.level*10;
+  const moving=elements.map(element=>{
+    const angle=Math.random()*Math.PI*2;
+    element.style.transition='none';
+    return {
+      element,
+      size:parseFloat(element.style.width),
+      x:parseFloat(element.style.left),
+      y:parseFloat(element.style.top),
+      vx:Math.cos(angle)*speed,
+      vy:Math.sin(angle)*speed
+    };
+  });
+  let lastFrame=performance.now();
+  function animate(now){
+    const elapsed=Math.min(Math.max(0,(now-lastFrame)/1000),0.05);
+    lastFrame=now;
+    const rect=arena.getBoundingClientRect();
+    const headerBottom=document.querySelector('.sl-test-header')?.getBoundingClientRect().bottom ?? 0;
+    moving.forEach(item=>{
+      const maxX=Math.max(0,arena.clientWidth-item.size);
+      const maxY=Math.max(0,arena.clientHeight-item.size);
+      const minY=Math.min(maxY,Math.max(0,headerBottom-rect.top+8));
+      item.x+=item.vx*elapsed;
+      item.y+=item.vy*elapsed;
+      if(item.x<0){item.x=0;item.vx=Math.abs(item.vx);}
+      else if(item.x>maxX){item.x=maxX;item.vx=-Math.abs(item.vx);}
+      if(item.y<minY){item.y=minY;item.vy=Math.abs(item.vy);}
+      else if(item.y>maxY){item.y=maxY;item.vy=-Math.abs(item.vy);}
+      item.element.style.left=item.x+'px';
+      item.element.style.top=item.y+'px';
+    });
+    pointerAnimation=requestAnimationFrame(animate);
+  }
+  pointerAnimation=requestAnimationFrame(animate);
+}
+
+function startMode1(dynamic=false){
+  stopPointerMovement();
+  clearInterval(mode1TimerInterval);
+  currentDistractors=[];
   show('arena');
   const arena=document.getElementById('arena');
   arena.innerHTML='<div class="timer" id="timer1">0.00s</div>';
@@ -164,6 +221,7 @@ function startMode1(){
   state.start=performance.now();
   currentMode1Target=createCircle(sizeByLevel(state.level),'target','yellow','6px solid orange');
   arena.appendChild(currentMode1Target);
+  if(dynamic) startPointerMovement([currentMode1Target]);
   mode1TimerInterval=setInterval(()=>{
     const t=((performance.now()-state.start)/1000).toFixed(2);
     const timer=document.getElementById('timer1');
@@ -171,13 +229,15 @@ function startMode1(){
   },50);
   document.onkeydown=(e)=>{
     if(e.code!=='Space') return;
+    e.preventDefault();
+    stopPointerMovement();
     if(currentMode1Target) currentMode1Target.remove();
     currentDistractors.forEach(d=>d.remove());
     currentDistractors=[];
     if(state.current>=20){
       clearInterval(mode1TimerInterval);
       document.onkeydown=null;
-      showScore('Mode 1 - Pointer 20 cibles','Niveau '+state.level,'Temps : '+((performance.now()-state.start)/1000).toFixed(2)+'s');
+      showScore(dynamic?'Pointer dynamique — 20 cibles':'Pointer — 20 cibles','Niveau '+state.level,'Temps : '+((performance.now()-state.start)/1000).toFixed(2)+'s');
       return;
     }
     state.current++;
@@ -194,6 +254,7 @@ function startMode1(){
     });
     currentMode1Target=createCircle(sizeByLevel(state.level),'target','yellow','6px solid orange');
     arena.appendChild(currentMode1Target);
+    if(dynamic) startPointerMovement([...currentDistractors,currentMode1Target]);
   };
 }
 function startMode2(){
@@ -215,7 +276,7 @@ function startMode2(){
     if((performance.now()-followStartTime)>=40000){
       cancelAnimationFrame(followAnim);
       document.onkeydown=null;
-      showScore('Mode 2 - Suivi de cible','Niveau '+state.level,'Temps final : '+followElapsed.toFixed(2)+'s',followElapsed<3?'<p class="success">Niveau réussi</p>':'<p class="fail">Échec de suivi</p>');
+      showScore('Cibles en mouvement','Niveau '+state.level,'Temps final : '+followElapsed.toFixed(2)+'s',followElapsed<3?'<p class="success">Niveau réussi</p>':'<p class="fail">Échec de suivi</p>');
       return;
     }
     followAnim=requestAnimationFrame(animate);
@@ -383,8 +444,8 @@ function startMode3(){
 function endMode3(t){
   cancelAnimationFrame(pacLoop);
   document.onkeydown=null;
-  if(pacFailed) showScore('Mode 3 - Pacman','Niveau '+state.level,'<p class="fail">Échec à '+t+'s</p>');
-  else showScore('Mode 3 - Pacman','Niveau '+state.level,'<p class="success">Niveau réussi</p>');
+  if(pacFailed) showScore('Pacman','Niveau '+state.level,'<p class="fail">Échec à '+t+'s</p>');
+  else showScore('Pacman','Niveau '+state.level,'<p class="success">Niveau réussi</p>');
 }
 function showScore(title,level,main,extra=''){
   show('score');
