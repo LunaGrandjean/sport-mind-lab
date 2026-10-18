@@ -31,7 +31,7 @@ export const HTML_TESTS: HtmlTool[] = [
     htmlPath: "/tests/test_captation_information_visuelle.html",
     description: "Discrimination visuelle rapide et temps de réponse.",
     objective: "Évaluer la vitesse de prise d'information sur stimulus bref.",
-    instructions: "Identifier rapidement si deux stimuli correspondent, puis répondre.",
+    instructions: "Répondre Match si les deux stimuli ont la même forme et la même orientation, sinon No Match. En mode Formes & couleurs, ignorer la couleur : c'est un distracteur.",
   },
   {
     id: "suivi-multi-objets",

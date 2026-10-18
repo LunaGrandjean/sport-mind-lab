@@ -53,9 +53,10 @@ background:linear-gradient(135deg, rgba(34,197,94,.14), rgba(239,68,68,.14));
 .correction-panel p{margin:8px 0;}
 </style>
 <link rel="stylesheet" href="./test-theme.css">
+<link rel="stylesheet" href="./test-background.css">
 </head>
 
-<body>
+<body data-test-background="white">
 
 <div id="pagePatient" class="page active">
 <div class="card">
@@ -63,6 +64,13 @@ background:linear-gradient(135deg, rgba(34,197,94,.14), rgba(239,68,68,.14));
 <input id="prenom" type="hidden" value="Sportif">
 <input id="nom" type="hidden" value="Session">
 <input id="age" type="hidden" value="0">
+<div class="test-background-select">
+<label for="testBackground">Fond du test</label>
+<select id="testBackground" onchange="document.body.dataset.testBackground=this.value">
+<option value="white">Fond blanc</option>
+<option value="black">Fond noir</option>
+</select>
+</div>
 <button onclick="goCountdown()">Démarrer</button>
 </div>
 </div>
@@ -110,7 +118,7 @@ function circlesCount(l){return l<=10?3:l<=25?4:l<=45?5:6;}
 function shuffle(a){return a.sort(()=>Math.random()-0.5);}
 
 function setGap(c,g){
-["Top","Right","Bottom","Left"].forEach(b=>c.style["border"+b+"Color"]="#2c3e50");
+["Top","Right","Bottom","Left"].forEach(b=>c.style["border"+b+"Color"]="var(--test-foreground)");
 c.style["border"+["Top","Right","Bottom","Left"][g]+"Color"]="transparent";
 }
 

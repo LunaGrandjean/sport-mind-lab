@@ -105,9 +105,10 @@ input, button, select {
 }
 </style>
 <link rel="stylesheet" href="./test-theme.css">
+<link rel="stylesheet" href="./test-background.css">
 </head>
 
-<body>
+<body data-test-background="white">
 
 <!-- ===== PAGE 1 ===== -->
 <div id="setup">
@@ -121,9 +122,18 @@ input, button, select {
         <option value="advanced">Formes & couleurs</option>
     </select><br>
 
+    <div class="test-background-select">
+        <label for="testBackground">Fond du test</label>
+        <select id="testBackground" onchange="document.body.dataset.testBackground=this.value">
+            <option value="white">Fond blanc</option>
+            <option value="black">Fond noir</option>
+        </select>
+    </div>
+
     <button onclick="startTest(true)">Démarrer</button><br>
     <button onclick="goFullscreen()">Mode plein écran</button>
     <p style="opacity:0.7">X = Match | N = No Match</p>
+    <p>Match = même forme et même orientation. En mode « Formes & couleurs », ignorez la couleur : elle sert uniquement de distracteur.</p>
 </div>
 
 <div id="countdown"></div>
@@ -159,7 +169,8 @@ const displayTimes = [
 ];
 
 const shapes = ["circle","square","triangle"];
-const colors = ["black","red","blue","green","yellow"];
+const shapeLabels = {circle: "Cercle", square: "Carré", triangle: "Triangle"};
+const colors = ["var(--test-foreground)","red","blue","green","yellow"];
 
 let level=1, errors=0, isMatch=false, state="idle";
 let reactionTimes=[], falsePos=0, falseNeg=0, startResponse=0;
@@ -230,47 +241,57 @@ function createStimulus(el, forcedShape=null, forcedAngle=null){
     return {shape, angle, color};
 }
 
-function stimulusSnapshot(el, label){
+function stimuliMatch(first, second){
+    // La couleur est un distracteur : seuls la forme et l'angle comptent.
+    return first.shape === second.shape && first.angle === second.angle;
+}
+
+function stimulusSnapshot(el, label, stimulus){
     const clone = el.cloneNode(true);
     clone.removeAttribute("id");
     clone.classList.add("review-shape");
     clone.style.visibility = "visible";
     clone.style.opacity = "1";
-    return `<div class="review-item"><strong>${label}</strong>${clone.outerHTML}</div>`;
+    return `<div class="review-item"><strong>${label}</strong>${clone.outerHTML}<span>${shapeLabels[stimulus.shape]} · Orientation : ${Number(stimulus.angle.toFixed(2))}°</span></div>`;
 }
 
 function showStimulus(){
     state="stimulus";
+    let first, second;
 
     if(currentMode==="advanced"){
-        const ref=createStimulus(s1);
-        isMatch=Math.random()<0.5;
+        first=createStimulus(s1);
+        const generateMatch=Math.random()<0.5;
 
-        if(isMatch){
-            createStimulus(s2, ref.shape, ref.angle);
+        if(generateMatch){
+            second=createStimulus(s2, first.shape, first.angle);
         } else {
             if(Math.random()<0.5){
-                const other=shapes.filter(s=>s!==ref.shape);
-                createStimulus(s2, other[Math.floor(Math.random()*other.length)]);
+                const other=shapes.filter(s=>s!==first.shape);
+                second=createStimulus(s2, other[Math.floor(Math.random()*other.length)]);
             } else {
-                let a;
-                do{ a=Math.floor(Math.random()*360); }while(a===ref.angle);
-                createStimulus(s2, ref.shape, a);
+                // Éviter les écarts de 1° qui paraissent identiques, y compris à la correction.
+                const offset=90*(1+Math.floor(Math.random()*3));
+                second=createStimulus(s2, first.shape, (first.angle+offset)%360);
             }
         }
+        isMatch=stimuliMatch(first, second);
     } else {
         const r=Math.random()*360;
         isMatch=Math.random()<0.5;
+        const secondAngle=isMatch ? r : Math.random()*360;
         s1.className="stimulus circle";
         s2.className="stimulus circle";
-        s1.style.border=s2.style.border="18px solid black";
+        s1.style.border=s2.style.border="18px solid var(--test-foreground)";
         s1.style.borderTopColor=s2.style.borderTopColor="transparent";
         s1.style.transform=`rotate(${r}deg)`;
-        s2.style.transform=isMatch?`rotate(${r}deg)`:`rotate(${Math.random()*360}deg)`;
+        s2.style.transform=`rotate(${secondAngle}deg)`;
         s1.style.visibility=s2.style.visibility="visible";
+        first={shape: "circle", angle: r};
+        second={shape: "circle", angle: secondAngle};
     }
 
-    currentTrialReview = `<div class="review-pair">${stimulusSnapshot(s1, "Forme 1")}${stimulusSnapshot(s2, "Forme 2")}</div>`;
+    currentTrialReview = `<div class="review-pair">${stimulusSnapshot(s1, "Forme 1", first)}${stimulusSnapshot(s2, "Forme 2", second)}</div>`;
 
     setTimeout(()=>{
         s1.style.visibility="hidden";
@@ -321,6 +342,7 @@ function showReport(){
     const correctionsHtml = failedTrials.length ? `
     <div class="correction-panel">
       <h3>Correction des erreurs</h3>
+      <p>Match = même forme et même orientation. La couleur ne compte pas.</p>
       ${failedTrials.map((trial,index)=>`
         <div>
           <p><strong>Erreur ${index+1} - niveau ${trial.level}</strong></p>

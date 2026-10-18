@@ -1,0 +1,50 @@
+body[data-test-background="white"] {
+  --test-background: #fff;
+  --test-foreground: #000;
+}
+
+body[data-test-background="black"] {
+  --test-background: #000;
+  --test-foreground: #fff;
+}
+
+body[data-test-background],
+body[data-test-background] .page,
+body[data-test-background] #pageTest {
+  background: var(--test-background) !important;
+  color: var(--test-foreground) !important;
+}
+
+body[data-test-background] #pageTest h2 {
+  color: var(--test-foreground);
+}
+
+body[data-test-background] #reportBox {
+  color: var(--lab-ink);
+}
+
+body[data-test-background] #arena,
+body[data-test-background] .review-arena,
+body[data-test-background] .review-pair {
+  background: var(--test-background);
+  color: var(--test-foreground);
+}
+
+body[data-test-background] .review-pair {
+  padding: 24px;
+  border-radius: 12px;
+}
+
+body[data-test-background] #arena .circle,
+body[data-test-background] .review-arena .circle {
+  border-color: var(--test-foreground);
+}
+
+.test-background-select {
+  margin: 12px 0;
+}
+
+.test-background-select select {
+  font-size: 18px;
+  padding: 8px;
+}
