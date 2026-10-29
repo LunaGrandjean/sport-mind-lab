@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mémoire des liaisons</title>
+  <link rel="stylesheet" href="./test-theme.css">
+  <style>
+    [hidden]{display:none!important}
+    body{margin:0}
+    button,select{font:inherit;border-radius:10px;padding:12px 16px}
+    button{cursor:pointer}
+    button:focus-visible,select:focus-visible{outline:3px solid #0e7490;outline-offset:4px}
+    .menu{min-height:100vh;display:grid;place-items:center;padding:28px 20px}
+    .settings-card{width:min(960px,100%);background:#fff;border:1px solid #d6e2eb;border-radius:22px;padding:32px;box-shadow:var(--lab-shadow)}
+    h1{margin:0 0 10px;font-size:clamp(26px,4vw,36px)}
+    .intro{margin:0;color:#475569;line-height:1.6}
+    .settings-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,1fr);gap:32px;margin-top:24px;align-items:center}
+    label{display:block;margin:0 0 8px}
+    select{width:100%;margin-bottom:20px}
+    .instructions{padding-left:22px;line-height:1.65;color:#334155}
+    .instructions li{margin:8px 0}
+    kbd{font:inherit;font-weight:700}
+    .preview{margin:0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:16px}
+    .preview svg{display:block;width:100%;height:auto;background:#fff;border-radius:12px}
+    figcaption{color:#475569;text-align:center;font-size:14px;margin-top:12px}
+    .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px}
+    body.exercise-open{background:#fff!important;overflow:hidden}
+    .exercise{height:100vh;height:100dvh;display:grid;grid-template-rows:76px minmax(0,1fr) 56px;background:#fff;color:#0f172a}
+    .exercise-top{height:76px;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 20px;border-bottom:1px solid #e2e8f0}
+    .exercise-heading{min-width:0}
+    #phaseLabel{display:block;font-size:18px}
+    #trialInfo{display:block;color:#475569;font-size:14px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .menu-button{flex-shrink:0;font-size:14px;padding:10px 12px}
+    .drawing-area{min-height:0;min-width:0;display:grid;place-items:center;padding:12px}
+    #board{display:block;width:100%;height:100%;background:#fff}
+    .exercise-bottom{height:56px;border-top:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 20px}
+    #phaseHint{margin:0;font-size:14px;color:#334155;min-width:0}
+    #nextFigure{flex-shrink:0;padding:8px 12px;font-size:14px}
+    @media(max-width:640px){
+      .settings-card{padding:22px}
+      .settings-grid{grid-template-columns:1fr;gap:20px}
+      .preview{max-width:360px;justify-self:center}
+      .exercise{grid-template-rows:76px minmax(0,1fr) 72px}
+      .exercise-top{padding:10px 12px}
+      .exercise-bottom{height:72px;padding:8px 12px}
+      #phaseHint{font-size:12px}
+    }
+  </style>
+</head>
+<body>
+  <main id="menu" class="menu">
+    <section class="settings-card" aria-labelledby="appTitle">
+      <h1 id="appTitle">Mémoire des liaisons</h1>
+      <p class="intro">Mémorisez une figure, puis reproduisez ses liaisons avec votre laser. Les sept points gardent toujours les mêmes emplacements.</p>
+      <div class="settings-grid">
+        <div>
+          <label for="difficulty">Niveau</label>
+          <select id="difficulty">
+            <option value="easy">Facile — liaisons simples</option>
+            <option value="medium">Moyen — liaisons croisées</option>
+            <option value="hard">Difficile — courbes et croisements</option>
+          </select>
+          <label for="exposure">Temps d’apparition</label>
+          <select id="exposure">
+            <option value="1">1 seconde</option>
+            <option value="2">2 secondes</option>
+            <option value="3">3 secondes</option>
+            <option value="4">4 secondes</option>
+            <option value="5" selected>5 secondes</option>
+            <option value="10">10 secondes</option>
+            <option value="15">15 secondes</option>
+            <option value="20">20 secondes</option>
+            <option value="25">25 secondes</option>
+            <option value="30">30 secondes</option>
+            <option value="40">40 secondes</option>
+            <option value="50">50 secondes</option>
+            <option value="60">60 secondes</option>
+          </select>
+          <ol class="instructions">
+            <li><kbd>Espace</kbd> affiche une nouvelle figure aléatoire.</li>
+            <li>Mémorisez les liaisons pendant la durée choisie.</li>
+            <li>La figure disparaît pendant <strong>3 secondes</strong>.</li>
+            <li>Les points reviennent <strong>en noir, sans aucune liaison</strong> : reproduisez la figure avec votre laser.</li>
+          </ol>
+          <p class="intro"><kbd>Espace</kbd> relance une figure du même niveau à tout moment. <kbd>M</kbd> ou <kbd>Échap</kbd> ramène aux réglages.</p>
+          <div class="actions"><button id="startExercise" type="button">Démarrer — Espace</button></div>
+        </div>
+        <figure class="preview">
+          <svg id="menuPreview" viewBox="0 0 1000 800" role="img" aria-label="Exemple de figure du niveau choisi"></svg>
+          <figcaption id="previewCaption">Exemple du niveau facile, inspiré de la figure 37.</figcaption>
+        </figure>
+      </div>
+    </section>
+  </main>
+
+  <section id="exercise" class="exercise" aria-label="Exercice de mémorisation" hidden>
+    <header class="exercise-top">
+      <div class="exercise-heading">
+        <strong id="phaseLabel" role="status" aria-live="polite">Mémorisation</strong>
+        <span id="trialInfo"></span>
+      </div>
+      <button id="returnMenu" class="secondary menu-button" type="button">Menu · M / Échap</button>
+    </header>
+    <div class="drawing-area">
+      <svg id="board" viewBox="0 0 1000 800" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Figure à mémoriser"></svg>
+    </div>
+    <footer class="exercise-bottom">
+      <p id="phaseHint">Mémorisez les liaisons.</p>
+      <button id="nextFigure" type="button">Nouvelle figure · Espace</button>
+    </footer>
+  </section>
+
+  <script src="./memoire-des-liaisons.js"></script>
+  <script src="./test-shell.js"></script>
+</body>
+</html>

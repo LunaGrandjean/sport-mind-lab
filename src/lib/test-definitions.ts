@@ -85,6 +85,15 @@ export const PRACTICE_APPS: HtmlTool[] = [
     instructions: "Choisir le mode, le niveau puis réaliser la tâche.",
   },
   {
+    id: "memoire-liaisons",
+    title: "Mémoire des liaisons",
+    type: "application",
+    htmlPath: "/tests/memoire_des_liaisons.html",
+    description: "Figures aléatoires sur sept points fixes, puis reproduction au laser.",
+    objective: "Travailler la mémoire visuo-spatiale et la reproduction de liaisons en coordination motrice.",
+    instructions: "Choisir le niveau et la durée. Espace affiche une figure ; après 3 secondes de pause, reproduire les liaisons sur les points noirs. M ou Échap revient au menu.",
+  },
+  {
     id: "memoire-defilement",
     title: "Mémoire en défilement",
     type: "application",

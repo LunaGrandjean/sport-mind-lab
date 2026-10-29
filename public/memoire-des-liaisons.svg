@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 800">
+  <rect width="1000" height="800" rx="90" fill="#fff"/>
+  <path d="M500 100 760 250 760 550 500 700 240 550 240 250Z M500 100V700 M240 250 760 550 M760 250 240 550" fill="none" stroke="#18212c" stroke-width="16" stroke-linejoin="round"/>
+  <g stroke="#fff" stroke-width="10">
+    <circle cx="500" cy="100" r="35" fill="#c14681"/>
+    <circle cx="760" cy="250" r="35" fill="#2478bd"/>
+    <circle cx="760" cy="550" r="35" fill="#719e43"/>
+    <circle cx="500" cy="700" r="35" fill="#c52e4d"/>
+    <circle cx="240" cy="550" r="35" fill="#7c4392"/>
+    <circle cx="240" cy="250" r="35" fill="#db702f"/>
+    <circle cx="500" cy="400" r="35" fill="#e2b81e"/>
+  </g>
+</svg>
