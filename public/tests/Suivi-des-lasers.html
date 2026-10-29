@@ -8,15 +8,20 @@
   *{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#0b1020;color:#fff}
   .screen{display:none;min-height:100vh;padding:24px}
   .active{display:flex;flex-direction:column;align-items:center;justify-content:center}
-  .panel{background:#141b34;padding:24px;border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,.35);width:min(700px,90vw)}
+  .panel{background:#141b34;color:#f8fafc;padding:24px;border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,.35);width:min(700px,90vw)}
+  .panel h1,.panel h2,.panel label{color:inherit}
   h1,h2{text-align:center}
   .row{margin:16px 0}
+  .panel .instructions{color:#f8fafc;line-height:1.6}
+  .score-metrics strong{font-size:1.5em}
   button{padding:14px 24px;border:none;border-radius:12px;cursor:pointer;font-size:16px}
   .primary{background:#ffb300;color:#111;font-weight:bold}
   #arena,#followArena,#pacmanArena{position:fixed;inset:0;background:#000;overflow:hidden}
   .target{position:absolute;border-radius:50%;background:#ffd400;border:6px solid orange}
   .distractor{position:absolute;border-radius:50%}
-  .timer{position:fixed;top:20px;left:20px;font-size:28px;font-weight:bold;z-index:1000}
+  .timer{position:fixed;top:20px;left:20px;font-size:28px;font-weight:bold;color:#fff;text-shadow:0 1px 4px #000;z-index:1000}
+  .timer{pointer-events:none;font-variant-numeric:tabular-nums}
+  .timer small{display:block;font-size:16px;margin-top:4px}
   .countdown{font-size:80px;font-weight:bold}
   .success{color:#22c55e}.fail{color:#ef4444}
   canvas{background:#050505;display:block}
@@ -32,7 +37,7 @@
       <label><input type="radio" name="mode" value="4"> Pointer dynamique</label><br>
       <label><input type="radio" name="mode" value="2"> Cibles en mouvement</label><br>
       <label><input type="radio" name="mode" value="3"> Pacman</label>
-      <p>Pointer et Pointer dynamique : validez chaque cible avec la barre d’espace. En Pointer dynamique, les cibles et les distracteurs se déplacent.</p>
+      <p id="modeInstructions" class="instructions">Visez la cible jaune au contour orange, puis appuyez sur la barre d’espace pour la valider. Validez 20 cibles : le chrono mesure le temps total.</p>
     </div>
     <div class="row">
       <label>Niveau : <input id="level" type="number" min="1" max="20" value="1"></label>
@@ -52,6 +57,7 @@ let state={mode:1,level:1,start:0,current:0};
 let currentMode1Target=null;
 let currentDistractors=[];
 let mode1TimerInterval=null;
+let countdownInterval=null;
 let pointerAnimation=null;
 let followRunning=false;
 let followElapsed=0;
@@ -62,6 +68,29 @@ let pacStartTime=0;
 let pacFailed=false;
 
 const screens=[...document.querySelectorAll('.screen')];
+const MODE_INSTRUCTIONS={
+  1:'Visez la cible jaune au contour orange, puis appuyez sur la barre d’espace pour la valider. Validez 20 cibles : le chrono mesure le temps total.',
+  4:'Visez la cible jaune au contour orange pendant son déplacement, puis appuyez sur la barre d’espace pour la valider. Les distracteurs se déplacent aussi. Validez 20 cibles : le chrono mesure le temps total.',
+  2:'Suivez la cible pendant 40 secondes. Appuyez sur Espace au début d’une perte de suivi, puis à nouveau quand vous retrouvez la cible. Le temps hors cible se cumule : le niveau est réussi s’il reste inférieur à 3 secondes.',
+  3:'Suivez les Pacman pendant 30 secondes. Appuyez sur Espace dès que vous perdez le suivi : l’essai s’arrête en échec. Tenez 30 secondes pour réussir le niveau.'
+};
+function updateModeInstructions(){
+  const selected=document.querySelector('input[name="mode"]:checked');
+  document.getElementById('modeInstructions').textContent=MODE_INSTRUCTIONS[selected?.value ?? 1];
+}
+document.querySelectorAll('input[name="mode"]').forEach(input=>input.addEventListener('change',updateModeInstructions));
+function stopMode(){
+  clearInterval(countdownInterval);
+  countdownInterval=null;
+  clearInterval(mode1TimerInterval);
+  mode1TimerInterval=null;
+  stopPointerMovement();
+  if(followAnim!==null) cancelAnimationFrame(followAnim);
+  followAnim=null;
+  if(pacLoop!==null) cancelAnimationFrame(pacLoop);
+  pacLoop=null;
+  document.onkeydown=null;
+}
 function forceFullscreen(){
   const el=document.documentElement;
   if(el.requestFullscreen) el.requestFullscreen().catch(()=>{});
@@ -69,11 +98,7 @@ function forceFullscreen(){
   else if(el.msRequestFullscreen) el.msRequestFullscreen();
 }
 function show(id){
-  if(id!=='arena'){
-    stopPointerMovement();
-    clearInterval(mode1TimerInterval);
-    mode1TimerInterval=null;
-  }
+  stopMode();
   screens.forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   forceFullscreen();
@@ -119,9 +144,9 @@ function countdown(cb){
   let n=5;
   const el=document.getElementById('countdown');
   el.textContent=n;
-  const interval=setInterval(()=>{
+  countdownInterval=setInterval(()=>{
     n--;
-    if(n<=0){ clearInterval(interval); cb(); }
+    if(n<=0){ clearInterval(countdownInterval); countdownInterval=null; cb(); }
     else el.textContent=n;
   },1000);
 }
@@ -216,7 +241,7 @@ function startMode1(dynamic=false){
   currentDistractors=[];
   show('arena');
   const arena=document.getElementById('arena');
-  arena.innerHTML='<div class="timer" id="timer1">0.00s</div>';
+  arena.innerHTML='<div class="timer" id="timer1">Temps : 0.00 s</div>';
   state.current=1;
   state.start=performance.now();
   currentMode1Target=createCircle(sizeByLevel(state.level),'target','yellow','6px solid orange');
@@ -225,10 +250,10 @@ function startMode1(dynamic=false){
   mode1TimerInterval=setInterval(()=>{
     const t=((performance.now()-state.start)/1000).toFixed(2);
     const timer=document.getElementById('timer1');
-    if(timer) timer.textContent=t+'s';
+    if(timer) timer.textContent='Temps : '+t+' s';
   },50);
   document.onkeydown=(e)=>{
-    if(e.code!=='Space') return;
+    if(e.code!=='Space'||e.repeat) return;
     e.preventDefault();
     stopPointerMovement();
     if(currentMode1Target) currentMode1Target.remove();
@@ -237,7 +262,7 @@ function startMode1(dynamic=false){
     if(state.current>=20){
       clearInterval(mode1TimerInterval);
       document.onkeydown=null;
-      showScore(dynamic?'Pointer dynamique — 20 cibles':'Pointer — 20 cibles','Niveau '+state.level,'Temps : '+((performance.now()-state.start)/1000).toFixed(2)+'s');
+      showScore(dynamic?'Pointer dynamique — 20 cibles':'Pointer — 20 cibles','Niveau '+state.level,'<p>Temps total : <strong>'+((performance.now()-state.start)/1000).toFixed(2)+' s</strong></p>','<p class="success">20 cibles validées — série terminée</p>');
       return;
     }
     state.current++;
@@ -260,23 +285,37 @@ function startMode1(dynamic=false){
 function startMode2(){
   show('followArena');
   const arena=document.getElementById('followArena');
-  arena.innerHTML='<div class="timer" id="followTimer">0.00s</div>';
+  arena.innerHTML='<div class="timer" id="followTimer"><span id="followClock">Temps : 0.00 / 40 s</span><small id="followLostTime">Hors cible : 0.00 s</small></div>';
   const obj=createCircle(sizeByLevel(state.level),'target','yellow','6px solid orange');
   arena.appendChild(obj);
   let x=100,y=100,vx=2+state.level/3,vy=2+state.level/4;
   followElapsed=0; followRunning=false; followStartTime=performance.now();
-  document.onkeydown=(e)=>{ if(e.code==='Space') followRunning=!followRunning; };
+  let lastSample=followStartTime;
+  function updateClock(now){
+    const sample=Math.min(now,followStartTime+40000);
+    // Mesurer de vraies secondes, indépendamment de la fréquence de l'écran.
+    if(followRunning) followElapsed+=Math.max(0,sample-lastSample)/1000;
+    lastSample=sample;
+    return (sample-followStartTime)/1000;
+  }
+  document.onkeydown=(e)=>{
+    if(e.code!=='Space'||e.repeat) return;
+    e.preventDefault();
+    updateClock(performance.now());
+    followRunning=!followRunning;
+  };
   function animate(){
     x+=vx; y+=vy;
     if(x<0||x>window.innerWidth-sizeByLevel(state.level)) vx*=-1;
     if(y<0||y>window.innerHeight-sizeByLevel(state.level)) vy*=-1;
     obj.style.left=x+'px'; obj.style.top=y+'px';
-    if(followRunning) followElapsed+=0.016;
-    document.getElementById('followTimer').textContent=followElapsed.toFixed(2)+'s';
-    if((performance.now()-followStartTime)>=40000){
+    const elapsed=updateClock(performance.now());
+    document.getElementById('followClock').textContent='Temps : '+elapsed.toFixed(2)+' / 40 s';
+    document.getElementById('followLostTime').textContent='Hors cible : '+followElapsed.toFixed(2)+' s'+(followRunning?' (en cours)':'');
+    if(elapsed>=40){
       cancelAnimationFrame(followAnim);
       document.onkeydown=null;
-      showScore('Cibles en mouvement','Niveau '+state.level,'Temps final : '+followElapsed.toFixed(2)+'s',followElapsed<3?'<p class="success">Niveau réussi</p>':'<p class="fail">Échec de suivi</p>');
+      showScore('Cibles en mouvement','Niveau '+state.level,'<p>Durée : <strong>'+elapsed.toFixed(2)+' s</strong></p><p>Temps hors cible : <strong>'+followElapsed.toFixed(2)+' s</strong></p>',followElapsed<3?'<p class="success">Niveau réussi</p>':'<p class="fail">Échec de suivi</p>');
       return;
     }
     followAnim=requestAnimationFrame(animate);
@@ -414,7 +453,8 @@ function startMode3(){
   pacFailed=false;
 
   document.onkeydown=(e)=>{
-    if(e.code==='Space'){
+    if(e.code==='Space'&&!e.repeat){
+      e.preventDefault();
       pacFailed=true;
       endMode3(((performance.now()-pacStartTime)/1000).toFixed(2));
     }
@@ -432,7 +472,7 @@ function startMode3(){
     });
 
     const t=(performance.now()-pacStartTime)/1000;
-    document.getElementById('pacmanTimer').textContent=t.toFixed(2)+'s';
+    document.getElementById('pacmanTimer').textContent='Temps : '+Math.min(t,30).toFixed(2)+' / 30 s';
 
     if(t>=30){ endMode3(30); return; }
     pacLoop=requestAnimationFrame(loop);
@@ -444,12 +484,11 @@ function startMode3(){
 function endMode3(t){
   cancelAnimationFrame(pacLoop);
   document.onkeydown=null;
-  if(pacFailed) showScore('Pacman','Niveau '+state.level,'<p class="fail">Échec à '+t+'s</p>');
-  else showScore('Pacman','Niveau '+state.level,'<p class="success">Niveau réussi</p>');
+  showScore('Pacman','Niveau '+state.level,'<p>Temps réalisé : <strong>'+Number(t).toFixed(2)+' s / 30 s</strong></p>',pacFailed?'<p class="fail">Échec de suivi</p>':'<p class="success">Niveau réussi</p>');
 }
 function showScore(title,level,main,extra=''){
   show('score');
-  document.getElementById('scoreContent').innerHTML=`<h2>SCORE</h2><p>${title}</p><p>${level}</p><p>${main}</p>${extra}<button class="primary" onclick="replay()">Rejouer au même niveau</button><button onclick="show('menu')">Revenir au menu principal</button>`;
+  document.getElementById('scoreContent').innerHTML=`<h2>Résultat</h2><p>${title}</p><p>${level}</p><div class="score-metrics">${main}</div>${extra}<button class="primary" onclick="replay()">Rejouer au même niveau</button><button onclick="show('menu')">Revenir au menu principal</button>`;
 }
 function replay(){ countdown(startSelectedMode); }
 window.onload=()=>{ document.querySelector('button.primary').onclick=launchMode; };
