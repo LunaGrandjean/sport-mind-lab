@@ -94,6 +94,15 @@ export const PRACTICE_APPS: HtmlTool[] = [
     instructions: "Choisir le niveau et la durée. Espace affiche une figure ; après 3 secondes de pause, reproduire les liaisons sur les points noirs. M ou Échap revient au menu.",
   },
   {
+    id: "lecture-progressive",
+    title: "Lecture progressive",
+    type: "application",
+    htmlPath: "/tests/lecture_progressive.html",
+    description: "Un texte fixe, 21 niveaux cumulatifs et trois modes de lecture.",
+    objective: "Travailler la lecture, l’attention visuelle et l’adaptation aux contraintes typographiques.",
+    instructions: "Choisir le niveau et le mode : lignes, circulaire ou mots à l’envers. Flèche bas pour défiler ; M ou Échap pour les réglages.",
+  },
+  {
     id: "memoire-defilement",
     title: "Mémoire en défilement",
     type: "application",

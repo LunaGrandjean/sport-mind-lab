@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lecture progressive</title>
+  <link rel="stylesheet" href="./test-theme.css">
+  <link rel="stylesheet" href="./lecture-progressive.css">
+</head>
+<body>
+  <main id="readingMenu" class="reading-menu">
+    <section class="reading-settings" aria-labelledby="readingTitle">
+      <p class="eyebrow">Attention · Lecture · Flexibilité visuelle</p>
+      <h1 id="readingTitle">Lecture progressive</h1>
+      <p class="introduction">Un même texte sur l’entraînement visuel, 21 niveaux pour varier les contraintes de lecture.</p>
+      <div class="settings-columns">
+        <div>
+          <label for="readingLevel">Niveau de lecture</label>
+          <select id="readingLevel">
+            <option value="1">1 — Gros caractères et gras</option>
+            <option value="2">2 — Gros caractères sans gras</option>
+            <option value="3">3 — Mots coupés en fin de ligne</option>
+            <option value="4">4 — Gras variable au sein des mots</option>
+            <option value="5">5 — Taille réduite, palier 1</option>
+            <option value="6">6 — Taille réduite, palier 2</option>
+            <option value="7">7 — Taille réduite, palier 3</option>
+            <option value="8">8 — Taille réduite, palier 4</option>
+            <option value="9">9 — Interlignes variables</option>
+            <option value="10">10 — Écriture manuscrite, légèrement inclinée</option>
+            <option value="11">11 — Écriture moins droite</option>
+            <option value="12">12 — Mots décalés</option>
+            <option value="13">13 — Lettres décalées dans les mots</option>
+            <option value="14">14 — Lettres colorées, dont jaune doux</option>
+            <option value="15">15 — Espaces très variables entre les mots</option>
+            <option value="16">16 — Espaces variables entre les lettres</option>
+            <option value="17">17 — Taille variable de chaque lettre</option>
+            <option value="18">18 — Ensemble plus petit</option>
+            <option value="19">19 — « i » distracteurs entre les mots</option>
+            <option value="20">20 — « i » aussi à l’intérieur de certains mots</option>
+            <option value="21">21 — Lettres intérieures de certains mots mélangées</option>
+          </select>
+          <label for="readingMode">Mode d’affichage</label>
+          <select id="readingMode">
+            <option value="lines">Lignes classiques</option>
+            <option value="circular">Lecture circulaire</option>
+            <option value="reverse">Verlan — lettres des mots inversées</option>
+          </select>
+          <p id="modeDescription" class="mode-description">Le texte se lit ligne après ligne, de haut en bas.</p>
+          <button id="startReading" type="button">Commencer la lecture</button>
+        </div>
+        <aside class="level-details" aria-live="polite">
+          <span class="level-tag" id="levelTag">Niveau 1 / 21</span>
+          <h2 id="levelHeading">Gros caractères et gras</h2>
+          <p id="levelDescription"></p>
+          <p class="cumulative-note">À partir du niveau 3, les difficultés s’ajoutent progressivement à celles des niveaux précédents.</p>
+          <div class="keyboard-guide">
+            <p><kbd>↓</kbd> Faire défiler vers le bas</p>
+            <p><kbd>↑</kbd> Remonter dans le texte</p>
+            <p><kbd>M</kbd> ou <kbd>Échap</kbd> Revenir aux réglages</p>
+          </div>
+          <p class="source-note">Le texte de départ reste identique. Les lettres ajoutées aux niveaux 19 et 20 sont des distracteurs de l’exercice.</p>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <section id="readingScreen" hidden aria-label="Exercice de lecture">
+    <header class="reading-header">
+      <div>
+        <h1>Lecture progressive</h1>
+        <p id="readingSession"></p>
+        <p id="readingHint"></p>
+      </div>
+      <div class="reading-actions">
+        <button id="readingFullscreen" type="button">Plein écran</button>
+        <button id="readingBack" class="secondary" type="button">Menu · M / Échap</button>
+      </div>
+    </header>
+    <div id="readingSheet" class="reading-sheet">
+      <svg id="readingVisual" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
+      <article id="readingAccessible" class="sr-only" aria-label="Texte original de l’exercice"></article>
+    </div>
+    <footer class="reading-end">
+      <p>Fin du texte</p>
+      <button id="readingBackBottom" class="secondary" type="button">Revenir aux réglages</button>
+    </footer>
+  </section>
+  <script src="./lecture-progressive.js"></script>
+  <script src="./test-shell.js"></script>
+</body>
+</html>

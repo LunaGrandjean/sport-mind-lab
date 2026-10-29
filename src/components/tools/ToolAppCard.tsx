@@ -30,6 +30,7 @@ const toolImages: Record<string, string> = {
   "des-rotation": "/d%C3%A9s-rotation.png",
   "inhibition": "/inhibition.png",
   "komboid": "/komboid.png",
+  "lecture-progressive": "/lecture-progressive.svg",
   "memoire-billard": "/memoire.png",
   "memoire-defilement": "/m%C3%A9moire-en-defilement.png",
   "memoire-liaisons": "/memoire-des-liaisons.svg",
