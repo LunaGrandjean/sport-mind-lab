@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vision périphérique · Émotions</title>
+  <link rel="stylesheet" href="./test-theme.css">
+  <link rel="stylesheet" href="./emotions-peripheriques.css">
+</head>
+<body>
+  <main id="menu" class="menu">
+    <section class="settings-card" aria-labelledby="appTitle">
+      <p class="eyebrow">Perception &amp; attention</p>
+      <h1 id="appTitle">Vision périphérique · Émotions</h1>
+      <p class="intro">Comparez les expressions aux deux extrémités de l’écran ou identifiez une émotion au centre.</p>
+      <form id="settingsForm">
+        <div class="settings-grid">
+          <div>
+            <label for="mode">Mode</label>
+            <select id="mode" name="mode">
+              <option value="same">1 · Même personne, aux deux extrémités</option>
+              <option value="different">2 · Personnes différentes, aux deux extrémités</option>
+              <option value="identify">3 · Identifier l’émotion au centre</option>
+            </select>
+            <label for="startLevel">Niveau de départ</label>
+            <input id="startLevel" name="startLevel" type="number" min="1" max="70" step="1" value="1" placeholder="1" inputmode="numeric">
+            <p id="durationPreview" class="field-hint">Niveau 1 · apparition de 3 s</p>
+            <label for="background">Fond de l’exercice</label>
+            <select id="background" name="background">
+              <option value="white">Blanc</option>
+              <option value="black">Noir</option>
+            </select>
+            <label class="checkbox-label"><input id="fullscreen" type="checkbox" checked> Utiliser le plein écran</label>
+          </div>
+          <div>
+            <div id="menuPreview" class="menu-preview" aria-hidden="true"></div>
+            <ol class="instructions">
+              <li>Modes 1 et 2 : fixez la croix centrale pendant l’apparition des visages, placés tout aux bords de l’écran.</li>
+              <li>Après leur disparition : <kbd>X</kbd> = même émotion, <kbd>N</kbd> = émotions différentes.</li>
+              <li>Mode 3 : après la disparition du visage, choisissez l’une des dix émotions.</li>
+              <li>Chaque réponse fait monter d’un niveau. Une erreur affiche une croix rouge ; la deuxième termine la session et ouvre les corrections.</li>
+            </ol>
+          </div>
+        </div>
+        <p class="progression">70 niveaux : de 3 secondes à 30 millisecondes. <kbd>M</kbd> ou <kbd>Échap</kbd> revient aux réglages.</p>
+        <p id="loadStatus" role="status">Chargement des portraits…</p>
+        <div class="actions">
+          <button id="startButton" type="submit" disabled>Commencer</button>
+          <button id="retryLoading" type="button" class="secondary" hidden>Réessayer le chargement</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <section id="exercise" class="exercise" aria-label="Exercice de reconnaissance des émotions" hidden>
+    <header class="exercise-top">
+      <div><strong id="levelInfo"></strong><span id="sessionInfo"></span></div>
+      <button id="menuButton" type="button">Menu · M / Échap</button>
+    </header>
+    <div id="faceLayer" class="face-layer" aria-hidden="true" hidden></div>
+    <div id="fixation" class="fixation" aria-hidden="true">+</div>
+    <div id="errorCross" class="error-cross" role="img" aria-label="Réponse incorrecte" hidden>×</div>
+    <footer class="exercise-bottom">
+      <p id="phaseHint" role="status"></p>
+      <div id="pairAnswers" class="pair-answers" hidden>
+        <button type="button" data-match="true"><kbd>X</kbd> · Même émotion</button>
+        <button type="button" data-match="false"><kbd>N</kbd> · Émotions différentes</button>
+      </div>
+      <div id="emotionAnswers" class="emotion-answers" aria-label="Choisir l’émotion" hidden></div>
+    </footer>
+  </section>
+
+  <main id="summary" class="summary" hidden>
+    <section class="results-card" aria-labelledby="resultTitle">
+      <h1 id="resultTitle">Session terminée</h1>
+      <p id="resultSummary"></p>
+      <p id="resultDetails" class="intro"></p>
+      <div class="actions">
+        <button id="restartButton" type="button">Rejouer avec ces réglages</button>
+        <button id="settingsButton" type="button" class="secondary">Changer les réglages</button>
+      </div>
+      <h2>Correction des erreurs</h2>
+      <div id="corrections"></div>
+    </section>
+  </main>
+  <script src="./test-shell.js"></script>
+  <script src="./emotions-peripheriques.js"></script>
+</body>
+</html>

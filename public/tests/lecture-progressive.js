@@ -25,6 +25,7 @@ const READING_DESCRIPTIONS = [
   "Un « i » inutile est ajouté entre chaque paire de mots.",
   "Des « i » supplémentaires se glissent aussi dans certains mots, mais pas dans tous.",
   "Les lettres intérieures de certains mots sont mélangées ; la première et la dernière lettre restent en place. Les difficultés précédentes sont conservées.",
+  "Les difficultés du niveau 21 sont conservées, avec des lettres deux fois plus petites : la taille de base passe de 18 à 9 px.",
 ];
 const READING_MODES = {
   lines: { label: "Lignes classiques", description: "Le texte se lit ligne après ligne, de haut en bas." },
@@ -48,7 +49,7 @@ function readingNoise(word, letter, feature) {
 }
 
 function readingConfig(level) {
-  const fontSize = level >= 18 ? 18 : level >= 8 ? 28 : level === 7 ? 32 : level === 6 ? 38 : level === 5 ? 44 : 52;
+  const fontSize = level >= 22 ? 9 : level >= 18 ? 18 : level >= 8 ? 28 : level === 7 ? 32 : level === 6 ? 38 : level === 5 ? 44 : 52;
   return { level, fontSize, family: level >= 10 ? '"Segoe Print", "Comic Sans MS", cursive' : 'Arial, sans-serif', splitWords: level >= 3 };
 }
 
@@ -271,7 +272,7 @@ function renderReading(resetScroll = false) {
 
 function updateReadingSettings() {
   const level = Number(readingLevelInput.value);
-  document.getElementById("levelTag").textContent = `Niveau ${level} / 21`;
+  document.getElementById("levelTag").textContent = `Niveau ${level} / ${READING_DESCRIPTIONS.length}`;
   document.getElementById("levelHeading").textContent = readingLevelInput.selectedOptions[0].textContent.replace(/^\d+ — /u, "");
   document.getElementById("levelDescription").textContent = READING_DESCRIPTIONS[level - 1];
   document.getElementById("modeDescription").textContent = READING_MODES[readingModeInput.value].description;
@@ -284,7 +285,7 @@ function startReading() {
   document.getElementById("readingMenu").hidden = true;
   document.getElementById("readingScreen").hidden = false;
   document.body.classList.add("reading-active");
-  document.getElementById("readingSession").textContent = `Niveau ${readingState.level} / 21 · ${READING_MODES[readingState.mode].label}`;
+  document.getElementById("readingSession").textContent = `Niveau ${readingState.level} / ${READING_DESCRIPTIONS.length} · ${READING_MODES[readingState.mode].label}`;
   document.getElementById("readingHint").textContent = READING_MODES[readingState.mode].description + " ↓ pour défiler · M ou Échap pour les réglages.";
   if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   renderReading(true);

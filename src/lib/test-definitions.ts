@@ -67,6 +67,15 @@ export const HTML_TESTS: HtmlTool[] = [
 
 export const PRACTICE_APPS: HtmlTool[] = [
   {
+    id: "emotions-peripheriques",
+    title: "Vision périphérique · Émotions",
+    type: "application",
+    htmlPath: "/tests/vision_peripherique_emotions.html",
+    description: "Dix émotions, trois modes et des portraits réalistes au centre ou aux extrémités de l’écran.",
+    objective: "Travailler la reconnaissance des expressions et la prise d’information en vision périphérique.",
+    instructions: "Choisir le mode et le niveau de départ (1 par défaut). Fixer le centre ; après disparition des visages, X = même émotion, N = émotions différentes. En mode 3, choisir une émotion. Arrêt après deux erreurs avec corrections. M ou Échap pour les réglages.",
+  },
+  {
     id: "defilement-ballons",
     title: "Défilement ballons",
     type: "application",
@@ -91,14 +100,14 @@ export const PRACTICE_APPS: HtmlTool[] = [
     htmlPath: "/tests/memoire_des_liaisons.html",
     description: "Figures aléatoires sur sept points fixes, puis reproduction au laser.",
     objective: "Travailler la mémoire visuo-spatiale et la reproduction de liaisons en coordination motrice.",
-    instructions: "Choisir le niveau et la durée. Espace affiche une figure ; après 3 secondes de pause, reproduire les liaisons sur les points noirs. M ou Échap revient au menu.",
+    instructions: "Choisir le niveau et la durée. Espace affiche une figure ; après 3 secondes de pause, reproduire les liaisons sur les points noirs. Entrée affiche la correction. M ou Échap revient au menu.",
   },
   {
     id: "lecture-progressive",
     title: "Lecture progressive",
     type: "application",
     htmlPath: "/tests/lecture_progressive.html",
-    description: "Un texte fixe, 21 niveaux cumulatifs et trois modes de lecture.",
+    description: "Un texte fixe, 22 niveaux cumulatifs et trois modes de lecture.",
     objective: "Travailler la lecture, l’attention visuelle et l’adaptation aux contraintes typographiques.",
     instructions: "Choisir le niveau et le mode : lignes, circulaire ou mots à l’envers. Flèche bas pour défiler ; M ou Échap pour les réglages.",
   },

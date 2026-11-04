@@ -1,0 +1,72 @@
+[hidden]{display:none!important}
+body{margin:0}
+button,input,select{font:inherit;border-radius:10px;padding:12px 14px}
+button{cursor:pointer}
+button:disabled{cursor:wait;opacity:.6}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #0891b2;outline-offset:4px}
+.menu,.summary{min-height:100vh;padding:28px 20px;display:grid;place-items:center}
+.settings-card,.results-card{width:min(980px,100%);background:#fff;border:1px solid #d6e2eb;border-radius:22px;padding:32px;box-shadow:var(--lab-shadow)}
+h1{margin:0 0 12px;font-size:clamp(26px,4vw,36px)}
+h2{margin-top:32px}
+.eyebrow{margin:0 0 8px;color:#0b6c85;text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:750}
+.intro,.progression,.field-hint{color:#475569;line-height:1.6}
+.settings-grid{display:grid;grid-template-columns:minmax(220px,1fr) minmax(0,1.2fr);gap:32px;margin-top:24px}
+label{display:block;margin:0 0 8px}
+select,input[type=number]{width:100%;margin-bottom:16px}
+.field-hint{margin:-8px 0 20px;font-size:14px}
+.checkbox-label{display:flex;align-items:center;gap:10px;font-size:15px;margin-top:8px}
+input[type=checkbox]{width:18px;height:18px;accent-color:#0b4b7a}
+.instructions{padding-left:22px;line-height:1.6;color:#334155;font-size:15px}
+.instructions li{margin:8px 0}
+kbd{font:inherit;font-weight:750}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0}
+#loadStatus{color:#475569;font-size:14px}
+.portrait{aspect-ratio:2/3;background-size:500% 200%;background-repeat:no-repeat;background-color:#d1d5db;flex-shrink:0}
+.menu-preview{display:flex;justify-content:center;gap:12px;background:#f1f5f9;padding:16px;border-radius:16px}
+.menu-preview .portrait{width:78px;border-radius:8px}
+body.exercise-open{overflow:hidden;background:var(--exercise-bg)!important}
+.exercise{position:fixed;inset:0;background:var(--exercise-bg);color:var(--exercise-fg);isolation:isolate}
+.exercise-top{position:absolute;inset:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;z-index:2}
+.exercise-top strong,.exercise-top span{display:block}
+#levelInfo{font-size:20px}
+#sessionInfo{font-size:14px;margin-top:5px}
+#menuButton{font-size:14px;padding:10px 12px}
+.face-layer{position:absolute;inset:0;pointer-events:none}
+.face-layer .portrait{position:absolute;top:45%;transform:translateY(-50%);width:min(20vw,240px,30dvh)}
+.face-layer .left-face{left:0}
+.face-layer .right-face{right:0}
+.face-layer .center-face{left:50%;transform:translate(-50%,-50%);width:min(42vw,240px,30dvh)}
+.fixation,.error-cross{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);pointer-events:none;line-height:1}
+.fixation{font-size:42px;font-weight:400}
+.error-cross{font-size:140px;font-weight:700;color:#e31b36}
+.exercise-bottom{position:absolute;inset:auto 0 0;padding:12px 20px 20px;text-align:center}
+#phaseHint{margin:0 0 14px;min-height:24px;font-size:18px}
+.pair-answers{display:flex;gap:12px;justify-content:center}
+.emotion-answers{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;max-width:840px;margin:auto}
+.emotion-answers button{min-height:44px;padding:10px 6px;font-size:clamp(11px,1.8vw,16px);overflow-wrap:anywhere}
+.summary{align-items:start}
+.results-card{margin:12px 0}
+#resultSummary{font-size:21px;line-height:1.5;font-weight:650}
+.correction{border:1px solid #d6e2eb;border-radius:16px;background:#f8fafc;padding:20px;margin:20px 0}
+.correction h3{margin:0 0 18px;color:#061b3c}
+.correction-faces{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+.correction figure{margin:0;text-align:center;max-width:100%}
+.correction .portrait{width:min(160px,30vw);border-radius:8px}
+.correction figcaption{font-weight:700;color:#0f172a;margin-top:10px;line-height:1.5}
+.correction p{line-height:1.6;color:#334155}
+.given-answer{color:#b60018}
+@media(max-width:640px){
+  .menu,.summary{padding:16px 12px}
+  .settings-card,.results-card{padding:22px}
+  .settings-grid{grid-template-columns:1fr;gap:12px}
+  .menu-preview .portrait{width:65px}
+  .exercise-top{padding:12px}
+  #levelInfo{font-size:16px}
+  #sessionInfo{font-size:12px}
+  #menuButton{font-size:12px;padding:8px}
+  .exercise-bottom{padding:10px 8px 16px}
+  #phaseHint{font-size:14px}
+  .pair-answers{gap:8px}
+  .pair-answers button{font-size:13px;padding:10px}
+  .emotion-answers{gap:5px}
+}

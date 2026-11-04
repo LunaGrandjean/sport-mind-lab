@@ -166,11 +166,18 @@ function setPhase(phase) {
   appState.phase = phase;
   boardElement.style.visibility = phase === "blank" ? "hidden" : "visible";
   boardElement.setAttribute("aria-hidden", String(phase === "blank"));
-  const labels = { memorize: "Mémorisation", blank: "Pause · 3 secondes", recall: "Reproduction" };
-  const hints = { memorize: "Mémorisez les liaisons.", blank: "La figure a disparu. Patientez 3 secondes.", recall: "Reproduisez les liaisons avec votre laser, sans limite de temps." };
+  const labels = { memorize: "Mémorisation", blank: "Pause · 3 secondes", recall: "Reproduction", correction: "Correction" };
+  const hints = { memorize: "Mémorisez les liaisons.", blank: "La figure a disparu. Patientez 3 secondes.", recall: "Reproduisez au laser · Entrée : correction.", correction: "Espace : nouvelle figure." };
   document.getElementById("phaseLabel").textContent = labels[phase];
   document.getElementById("phaseHint").textContent = hints[phase];
-  boardElement.setAttribute("aria-label", phase === "recall" ? "Sept points noirs fixes, sans liaisons" : "Figure colorée à mémoriser");
+  boardElement.setAttribute("aria-label", phase === "recall" ? "Sept points noirs fixes, sans liaisons" : phase === "correction" ? "Correction : figure colorée et liaisons d’origine" : "Figure colorée à mémoriser");
+}
+
+function showCorrection() {
+  if (appState.phase !== "recall") return;
+  cancelTrial();
+  renderFigure(boardElement, appState.figure);
+  setPhase("correction");
 }
 
 function launchFigure() {
@@ -240,6 +247,13 @@ document.getElementById("nextFigure").addEventListener("click", launchFigure);
 document.getElementById("returnMenu").addEventListener("click", returnToMenu);
 difficultyInput.addEventListener("change", updatePreview);
 document.addEventListener("keydown", event => {
+  if (event.key === "Enter" || event.code === "Enter" || event.code === "NumpadEnter") {
+    if (appState.phase !== "menu") {
+      event.preventDefault();
+      if (!event.repeat) showCorrection();
+    }
+    return;
+  }
   if (event.code === "Escape" || event.key.toLowerCase() === "m") {
     if (appState.phase !== "menu") {
       event.preventDefault();

@@ -26,6 +26,7 @@ const toolImages: Record<string, string> = {
   "captation-visuelle": "/captation-inof-visuelle.png",
   "cps": "/cps.png",
   "defilement-ballons": "/defilement-ballon.png",
+  "emotions-peripheriques": "/emotions-peripheriques.svg",
   "des-basiques": "/d%C3%A9s-basiques.png",
   "des-rotation": "/d%C3%A9s-rotation.png",
   "inhibition": "/inhibition.png",
