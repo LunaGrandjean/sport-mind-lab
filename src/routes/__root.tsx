@@ -118,12 +118,15 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppStoreProvider>
-        <div className="min-h-screen w-full bg-background text-foreground">
+        <div className="flex min-h-screen w-full flex-col bg-background text-foreground">
           <AppSidebar />
-          <main className="mx-auto w-full max-w-[1600px] overflow-x-hidden px-4 py-5 sm:px-6 lg:px-8">
+          <main className="mx-auto w-full max-w-[1600px] flex-1 overflow-x-hidden px-4 py-5 sm:px-6 lg:px-8">
             {/* Required: nested routes render here. */}
             <Outlet />
           </main>
+          <footer className="shrink-0 border-t border-border/60 px-6 py-4 text-center text-xs leading-relaxed text-muted-foreground">
+            Site réalisé en collaboration avec Luna Grandjean Stefano &amp; Mathieu Deruelle Poirine.
+          </footer>
           <SoundPanel />
         </div>
         <Toaster position="top-right" />
