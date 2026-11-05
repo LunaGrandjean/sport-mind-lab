@@ -21,7 +21,7 @@ export const HTML_TESTS: HtmlTool[] = [
     htmlPath: "/tests/test_CPS.html",
     description: "Vitesse de frappe, endurance motrice et évolution du rythme.",
     objective: "Mesurer la capacité à produire des réponses motrices rapides et répétées.",
-    instructions: "Le sportif appuie le plus vite possible pendant la durée du test.",
+    instructions: "Choisir librement la durée (30 secondes par défaut). Le sportif appuie sur Espace le plus vite possible ; le chronomètre démarre au premier appui.",
   },
   {
     id: "captation-visuelle",
@@ -149,21 +149,12 @@ export const PRACTICE_APPS: HtmlTool[] = [
   },
   {
     id: "des-basiques",
-    title: "Dés basiques",
+    title: "Dés",
     type: "application",
-    htmlPath: "/tests/DICE-des-basiques.html",
-    description: "Lecture rapide de dés et prise d'information.",
+    htmlPath: "/tests/DICE.html",
+    description: "Lecture rapide de dés, avec ou sans rotation.",
     objective: "Travailler la vitesse de lecture et de décision.",
-    instructions: "Lancer l'exercice et répondre selon les consignes.",
-  },
-  {
-    id: "des-rotation",
-    title: "Dés rotation",
-    type: "application",
-    htmlPath: "/tests/DICE-des-qui-tournent.html",
-    description: "Lecture de dés en rotation et flexibilité visuelle.",
-    objective: "Travailler la captation d'information dans une configuration dynamique.",
-    instructions: "Observer les dés en mouvement puis répondre selon la consigne.",
+    instructions: "Choisir le nombre et les couleurs des dés. Cocher Rotation pour le mode tournant, puis cliquer sur Lancer.",
   },
 ];
 

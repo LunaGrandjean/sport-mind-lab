@@ -10,7 +10,7 @@ const PORTRAIT_SHEETS = [
   {width: 1179, height: 846, cropWidth: 150, cropHeight: 225, columns: [182, 346, 514, 683, 847], rows: [110, 485]},
 ];
 const MODE_NAMES = {same: "Même personne", different: "Personnes différentes", identify: "Identifier l’émotion"};
-const MAX_LEVEL = 70;
+const CALIBRATED_LEVELS = 70;
 const ui = Object.fromEntries([
   "menu", "settingsForm", "mode", "startLevel", "background", "fullscreen", "durationPreview",
   "menuPreview", "startButton", "loadStatus", "retryLoading", "exercise", "levelInfo", "sessionInfo",
@@ -24,7 +24,12 @@ const app = {
 };
 
 function exposureForLevel(level) {
-  return Math.round(3000 - (level - 1) * (3000 - 30) / (MAX_LEVEL - 1));
+  if (level <= CALIBRATED_LEVELS) return Math.round(3000 - (level - 1) * (3000 - 30) / (CALIBRATED_LEVELS - 1));
+  return Math.max(16, Math.round(30 * Math.pow(.97, level - CALIBRATED_LEVELS)));
+}
+
+function portraitScaleForLevel(level) {
+  return Math.max(.5, 1 / (1 + Math.max(0, level - CALIBRATED_LEVELS) * .012));
 }
 
 function formatDuration(milliseconds) {
@@ -35,7 +40,7 @@ function formatDuration(milliseconds) {
 
 function selectedLevel() {
   const value = ui.startLevel.valueAsNumber;
-  return Number.isFinite(value) ? Math.max(1, Math.min(MAX_LEVEL, Math.trunc(value))) : 1;
+  return Number.isFinite(value) ? Math.max(1, Math.trunc(value)) : 1;
 }
 
 function updateDurationPreview() {
@@ -135,7 +140,7 @@ function newTrial() {
 }
 
 function updateSessionInfo() {
-  ui.levelInfo.textContent = `Niveau ${app.level} / ${MAX_LEVEL} · ${formatDuration(exposureForLevel(app.level))}`;
+  ui.levelInfo.textContent = `Niveau ${app.level} · ${formatDuration(exposureForLevel(app.level))}`;
   ui.sessionInfo.textContent = `${MODE_NAMES[app.mode]} · ${app.errors.length} / 2 erreurs`;
 }
 
@@ -144,10 +149,14 @@ function beginTrial() {
   app.trial = newTrial();
   updateSessionInfo();
   const left = createPortrait(app.trial.left);
+  const scale = portraitScaleForLevel(app.level);
+  const width = app.mode === "identify" ? 42 : 20;
+  left.style.width = `min(${width * scale}vw,${240 * scale}px,${30 * scale}dvh)`;
   left.classList.add(app.mode === "identify" ? "center-face" : "left-face");
   ui.faceLayer.replaceChildren(left);
   if (app.trial.right) {
     const right = createPortrait(app.trial.right);
+    right.style.width = left.style.width;
     right.classList.add("right-face");
     ui.faceLayer.append(right);
   }
@@ -192,7 +201,7 @@ function answer(value) {
 }
 
 function advance() {
-  if (app.errors.length >= 2 || app.level >= MAX_LEVEL) {
+  if (app.errors.length >= 2) {
     finish();
     return;
   }
@@ -235,8 +244,8 @@ function finish() {
   ui.exercise.hidden = true;
   ui.summary.hidden = false;
   document.body.classList.remove("exercise-open");
-  ui.resultTitle.textContent = app.errors.length >= 2 ? "Session terminée · 2 erreurs" : "Niveau 70 terminé";
-  ui.resultSummary.textContent = `Niveau d’arrêt : ${app.level} / ${MAX_LEVEL} · apparition de ${formatDuration(exposureForLevel(app.level))}`;
+  ui.resultTitle.textContent = "Session terminée · 2 erreurs";
+  ui.resultSummary.textContent = `Niveau d’arrêt : ${app.level} · apparition de ${formatDuration(exposureForLevel(app.level))}`;
   ui.resultDetails.textContent = `${MODE_NAMES[app.mode]} · départ au niveau ${app.startLevel} · ${app.answers - app.errors.length} bonnes réponses sur ${app.answers} · ${app.errors.length} erreur${app.errors.length > 1 ? "s" : ""}`;
   ui.corrections.replaceChildren(...app.errors.map(addCorrection));
   if (!app.errors.length) ui.corrections.textContent = "Aucune erreur à corriger. Bravo !";

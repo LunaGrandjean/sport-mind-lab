@@ -42,6 +42,8 @@ h1, h2 {
 
 #sequence {
     display: flex;
+    flex-wrap: wrap;
+    max-width: calc(100vw - 32px);
     justify-content: center;
     gap: 15px;
     margin: 30px 0;
@@ -49,6 +51,7 @@ h1, h2 {
 }
 
 .ball {
+    flex-shrink: 0;
     width: 70px;
     height: 70px;
     border-radius: 50%;
@@ -165,13 +168,7 @@ button {
 
     <div id="startLevelSelect">
         Niveau de départ :
-        <select id="startLevel">
-            <script>
-                for (let i = 1; i <= 20; i++) {
-                    document.write(`<option value="${i}">${i}</option>`);
-                }
-            </script>
-        </select>
+        <input id="startLevel" type="number" min="1" step="1" value="1">
     </div>
 
     <br>
@@ -196,7 +193,6 @@ button {
 
 <script>
 let level = 1;
-const maxLevel = 20;
 let currentSequence = "";
 
 const colors = [
@@ -280,17 +276,13 @@ function showCorrection(userAnswer) {
 }
 
 function validateAnswer() {
+    if (document.getElementById("userInput").disabled) return;
     const userAnswer = document.getElementById("userInput").value;
 
     if (userAnswer === currentSequence) {
         level++;
-        if (level > maxLevel) {
-            document.getElementById("message").innerText =
-                "🎉 Test terminé – niveau maximal atteint.";
-            window.SportMindLabResult?.(maxLevel, "Niveau atteint");
-        } else {
-            startLevel();
-        }
+        startLevel();
+        return;
     } else {
         document.getElementById("message").innerText =
             "❌ Erreur – niveau atteint : " + level;
@@ -316,7 +308,7 @@ function goFullScreen() {
 // Bouton "Démarrer"
 document.getElementById("startBtn").onclick = () => {
     if (document.getElementById("customStart").checked) {
-        level = parseInt(document.getElementById("startLevel").value);
+        level = Math.max(1, parseInt(document.getElementById("startLevel").value, 10) || 1);
     } else {
         level = 1;
     }

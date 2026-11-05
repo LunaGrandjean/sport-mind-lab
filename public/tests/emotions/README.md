@@ -17,4 +17,4 @@ Les portraits sont affichés directement depuis ces fichiers. Les fenêtres de c
 
 Le menu, les trois modes d’exercice et les corrections utilisent les mêmes portraits d’origine. Les fichiers sont préchargés et décodés avant d’activer le démarrage.
 
-Le niveau 1 dure 3 000 ms ; la durée diminue linéairement jusqu’à 30 ms au niveau 70. L’affichage effectif des durées très courtes reste limité par la fréquence de rafraîchissement de l’écran et l’ordonnanceur du navigateur.
+Le niveau 1 dure 3 000 ms ; la durée diminue linéairement jusqu’à 30 ms au niveau 70. Au-delà, la durée demandée diminue de 3 % par niveau, jusqu’à 16 ms. La taille des portraits diminue aussi progressivement, jusqu’à la moitié de leur taille initiale. Les corrections gardent leur taille de lecture habituelle. La session se termine après deux erreurs. L’affichage effectif des durées très courtes reste limité par la fréquence de rafraîchissement de l’écran et l’ordonnanceur du navigateur.

@@ -40,7 +40,7 @@
       <p id="modeInstructions" class="instructions">Visez la cible jaune au contour orange, puis appuyez sur la barre d’espace pour la valider. Validez 20 cibles : le chrono mesure le temps total.</p>
     </div>
     <div class="row">
-      <label>Niveau : <input id="level" type="number" min="1" max="20" value="1"></label>
+      <label>Niveau : <input id="level" type="number" min="1" step="1" value="1"></label>
     </div>
     <button class="primary" onclick="launchMode()">Valider</button>
   </div>
@@ -103,7 +103,10 @@ function show(id){
   document.getElementById(id).classList.add('active');
   forceFullscreen();
 }
+function motionLevel(){ return Math.min(80,state.level); }
 function sizeByLevel(l){ return Math.max(18,80-l*3); }
+function pacmanSpeed(l){return 1.5+Math.min(80,l)*.18+(l>=20?3:l===19?2:l===18?1:0);}
+function pacmanCount(l){return (l>=17?8:l>=12?6:l>=4?4:1)+Math.min(12,Math.floor(Math.max(0,l-20)/3));}
 function randomPos(size){
   return {x:Math.random()*(window.innerWidth-size),y:Math.random()*(window.innerHeight-size)};
 }
@@ -130,7 +133,7 @@ function launchMode(){
   const modeInput=document.querySelector('input[name="mode"]:checked');
   const levelInput=document.getElementById('level');
   state.mode=modeInput?parseInt(modeInput.value,10):1;
-  state.level=Math.min(20,Math.max(1,parseInt(levelInput.value,10)||1));
+  state.level=Math.max(1,parseInt(levelInput.value,10)||1);
   countdown(startSelectedMode);
 }
 function startSelectedMode(){
@@ -187,7 +190,8 @@ function distractorConfig(level){
   while(arr.length<bigCount) arr.push({bg:'yellow',border:'yellow',size:'big'});
   while(arr.length<bigCount+smallCount) arr.push({bg:'yellow',border:'yellow',size:'small'});
   while(arr.length<bigCount+smallCount+sameCount) arr.push({bg:'yellow',border:'yellow',size:'same'});
-  while(arr.length<10) arr.push({bg:'yellow',border:'orange',size:'same', dashed:true});
+  const count=Math.min(30,10+Math.floor(Math.max(0,level-20)/2));
+  while(arr.length<count) arr.push({bg:'yellow',border:'orange',size:'same', dashed:true});
   return arr;
 }
 function stopPointerMovement(){
@@ -198,7 +202,7 @@ function stopPointerMovement(){
 function startPointerMovement(elements){
   stopPointerMovement();
   const arena=document.getElementById('arena');
-  const speed=90+state.level*10;
+  const speed=90+motionLevel()*10;
   const moving=elements.map(element=>{
     const angle=Math.random()*Math.PI*2;
     element.style.transition='none';
@@ -288,7 +292,7 @@ function startMode2(){
   arena.innerHTML='<div class="timer" id="followTimer"><span id="followClock">Temps : 0.00 / 40 s</span><small id="followLostTime">Hors cible : 0.00 s</small></div>';
   const obj=createCircle(sizeByLevel(state.level),'target','yellow','6px solid orange');
   arena.appendChild(obj);
-  let x=100,y=100,vx=2+state.level/3,vy=2+state.level/4;
+  let x=100,y=100,vx=2+motionLevel()/3,vy=2+motionLevel()/4;
   followElapsed=0; followRunning=false; followStartTime=performance.now();
   let lastSample=followStartTime;
   function updateClock(now){
@@ -359,12 +363,8 @@ function startMode3(){
   // Nombre de Pacman doublé à partir du niveau 4
   // Anciennement : 2 / 3 / 4 selon paliers
   // Nouveau : 4 / 6 / 8 selon paliers
-  const pacCount = state.level>=17 ? 8 : state.level>=12 ? 6 : state.level>=4 ? 4 : 1;
-  let speed=1.5+(state.level*0.18);
-  // Boost spécifique des niveaux élevés
-  if(state.level===18) speed += 1;
-  if(state.level===19) speed += 2;
-  if(state.level===20) speed += 3;
+  const pacCount = pacmanCount(state.level);
+  const speed = pacmanSpeed(state.level);
 
   // Centre du labyrinthe
   const centerX=Math.floor(cols/2);

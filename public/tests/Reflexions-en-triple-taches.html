@@ -39,7 +39,7 @@
       <option>Addition, soustraction, division et multiplication</option>
     </select>
     <label>Niveau :</label>
-    <input type="number" id="level" min="1" max="40" value="1" />
+    <input type="number" id="level" min="1" step="1" value="1" />
     <button onclick="startGame()">Démarrer</button>
   </div>
 </div>
@@ -88,6 +88,12 @@ const colors=['red','blue','green','gold','purple','orange','black','pink'];
 function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+}
+
+function stroopDuration(level){
+  if(level<=19)return 2000;
+  if(level<=30)return 1000;
+  return Math.max(160,Math.round(500*Math.pow(.98,Math.max(0,level-40))));
 }
 
 function generateOperation(level,type){
@@ -167,7 +173,7 @@ function renderOperation(data){
 }
 
 function startGame(){
-  currentLevel=parseInt(document.getElementById('level').value);
+  currentLevel=Math.max(1,parseInt(document.getElementById('level').value,10)||1);
   operationType=document.getElementById('operationType').value;
   showPage('page2');
   let count=5;
@@ -226,7 +232,7 @@ function blinkRandomDigit(){
 function runStroop(){
   stroopSequence=[];
   const total=10;
-  const duration=currentLevel<=19?2000:(currentLevel<=30?1000:500);
+  const duration=stroopDuration(currentLevel);
   let index=0;
 
   function next(){

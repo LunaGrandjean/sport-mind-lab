@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dés · Avec ou sans rotation</title>
+  <link rel="stylesheet" href="./test-theme.css">
+  <style>
+    body{margin:0;height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+    .toolbar{position:relative;flex-shrink:0;width:min(1120px,calc(100% - 24px));max-height:44dvh;overflow:auto;margin:12px auto;padding:16px 20px;border-radius:16px;display:flex;align-items:center;flex-wrap:wrap;gap:12px;transition:opacity .3s}
+    .toolbar.small{opacity:.7}
+    .toolbar:hover,.toolbar:focus-within{opacity:1}
+    h1{font-size:22px;margin:0 12px 0 0}
+    .toolbar label{display:inline-flex;gap:6px;align-items:center;font-size:14px}
+    #count{width:72px;padding:8px;font:inherit;border-radius:8px}
+    input[type=checkbox]{width:17px;height:17px;accent-color:#0b4b7a}
+    .toolbar button{padding:10px 14px;font:inherit;border-radius:10px;cursor:pointer}
+    button:focus-visible,input:focus-visible{outline:3px solid #0891b2;outline-offset:3px}
+    fieldset{min-width:0;flex-basis:100%;margin:0;padding:8px 0 0;border:0}
+    legend{font-size:14px;font-weight:700;color:#475569}
+    #colorsCheckboxes{display:flex;flex-wrap:wrap;gap:8px 12px}
+    #diceStatus{flex-basis:100%;font-size:13px;color:#475569;margin:0;min-height:18px}
+    #scene{position:relative;flex:1;min-height:0;width:100%;overflow:hidden}
+    .die{position:absolute;border-radius:14px;background:#fff;box-shadow:inset -6px -6px 12px #0004,inset 6px 6px 12px #ffffff59,0 8px 14px #0003}
+    .dot{position:absolute;border-radius:50%}
+    @keyframes fall{0%{transform:translateY(-400px) scale(.8)}70%{transform:translateY(0) scale(1.05)}85%{transform:translateY(-20px) scale(.98)}100%{transform:translateY(0) scale(1)}}
+    @keyframes roll{0%{transform:translateY(-400px) rotate(0)}25%{transform:translateY(-300px) rotate(180deg)}50%{transform:translateY(-150px) rotate(360deg)}75%{transform:translateY(-50px) rotate(540deg)}100%{transform:translateY(0) rotate(720deg)}}
+    @keyframes bounce{0%{transform:scale(1)}70%{transform:translateY(-20px) scale(1.05)}85%{transform:translateY(-10px) scale(.98)}100%{transform:scale(1)}}
+    @media(max-width:600px){.toolbar{padding:12px;gap:10px}h1{font-size:19px}.toolbar button{font-size:13px}#colorsCheckboxes{gap:6px 10px}}
+  </style>
+</head>
+<body>
+  <header class="toolbar" id="toolbar" aria-label="Réglages des dés">
+    <h1>Dés</h1>
+    <label for="count">Nombre <input id="count" type="number" value="6" min="1" max="30" step="1" required></label>
+    <label for="rotation"><input id="rotation" type="checkbox"> Rotation</label>
+    <button id="rollButton" type="button">Lancer</button>
+    <button id="fullscreenButton" type="button" class="secondary">Plein écran</button>
+    <fieldset>
+      <legend>Couleurs</legend>
+      <div id="colorsCheckboxes"></div>
+    </fieldset>
+    <p id="diceStatus" role="status">Choisissez vos réglages, puis lancez les dés.</p>
+  </header>
+  <main id="scene" aria-label="Dés affichés"></main>
+  <script src="./test-shell.js"></script>
+  <script src="./dice.js"></script>
+</body>
+</html>

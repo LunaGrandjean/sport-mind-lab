@@ -28,7 +28,6 @@ const toolImages: Record<string, string> = {
   "defilement-ballons": "/defilement-ballon.png",
   "emotions-peripheriques": "/emotions-peripheriques.svg",
   "des-basiques": "/d%C3%A9s-basiques.png",
-  "des-rotation": "/d%C3%A9s-rotation.png",
   "inhibition": "/inhibition.png",
   "komboid": "/komboid.png",
   "lecture-progressive": "/lecture-progressive.svg",
@@ -195,20 +194,6 @@ function iconConfig(id: string): { tone: IconTone; art: ReactNode } {
             <span className="absolute bottom-3 right-3 h-8 w-8 rounded-lg bg-[#182436] shadow">
               <span className="absolute left-2 top-2 h-2 w-2 rounded-full bg-white" />
               <span className="absolute bottom-2 right-2 h-2 w-2 rounded-full bg-white" />
-            </span>
-          </>
-        ),
-      };
-    case "des-rotation":
-      return {
-        tone: "slate",
-        art: (
-          <>
-            <span className="absolute left-4 top-6 grid h-9 w-9 place-items-center rounded-lg bg-[#102216] text-xs font-bold text-green-300 shadow">
-              G
-            </span>
-            <span className="absolute right-4 top-6 grid h-9 w-9 place-items-center rounded-lg bg-[#2d1518] text-xs font-bold text-red-300 shadow">
-              D
             </span>
           </>
         ),

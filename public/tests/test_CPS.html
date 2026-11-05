@@ -96,8 +96,9 @@ button:hover {
 <input id="prenom" type="hidden" value="Sportif">
 <input id="age" type="hidden" value="0">
 
-<input id="temps" type="hidden" value="30">
-<p class="protocol-note">Durée du test : 30 secondes</p>
+<label for="temps">Durée du test (en secondes)</label>
+<input id="temps" type="number" min="0.1" step="any" value="30" placeholder="30">
+<p class="protocol-note">30 secondes par défaut. Le chronomètre démarre au premier appui sur Espace.</p>
 
 <button onclick="startTest()">Démarrer le test</button>
 </div>
@@ -125,15 +126,30 @@ let interval;
 let lastCircle;
 
 function startTest() {
-    duration = parseInt(temps.value);
+    if (temps.validity.badInput) { temps.reportValidity(); return; }
+    if (temps.value === "") temps.value = "30";
+    if (!temps.reportValidity()) return;
+    duration = Number(temps.value);
+    if (!Number.isFinite(duration) || duration <= 0) return;
+    clicks = 0;
+    timeline = [];
+    cpsTimeline = [];
+    started = false;
+    timer.textContent = duration + " s";
     page1.style.display = "none";
     testScreen.style.display = "block";
-    testScreen.requestFullscreen?.();
+    testScreen.requestFullscreen?.().catch(()=>{});
 }
 
 document.addEventListener("keydown", e => {
     if (testScreen.style.display !== "block") return;
     if (e.code !== "Space") return;
+    e.preventDefault();
+    if (e.repeat) return;
+    if (started && (Date.now() - startTime) / 1000 >= duration) {
+        updateTimer();
+        return;
+    }
 
     if (!started) {
         started = true;
@@ -144,7 +160,7 @@ document.addEventListener("keydown", e => {
     clicks++;
     let t = (Date.now() - startTime) / 1000;
     timeline.push({t, c: clicks});
-    cpsTimeline.push({t, cps: clicks / t});
+    cpsTimeline.push({t, cps: t > 0 ? clicks / t : 0});
 
     if (lastCircle) lastCircle.remove();
     let circle = document.createElement("div");
@@ -166,7 +182,7 @@ function updateTimer() {
 }
 
 function finish() {
-    document.exitFullscreen?.();
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(()=>{});
     testScreen.style.display = "none";
     results.style.display = "block";
 
@@ -179,19 +195,20 @@ function finish() {
     let clientKey = `${nom.value}_${prenom.value}_${age.value}`;
     let history = JSON.parse(localStorage.getItem(clientKey) || "[]");
 
-    let comparisonText = "<p><strong>Aucun test antérieur pour ce client.</strong></p>";
-    if (history.length > 0) {
-        let prev = history[history.length-1];
+    const comparableHistory = history.filter(item => (item.duration ?? 30) === duration);
+    let comparisonText = "<p><strong>Aucun test antérieur de même durée pour ce client.</strong></p>";
+    if (comparableHistory.length > 0) {
+        let prev = comparableHistory[comparableHistory.length-1];
         comparisonText = `
         <div class="comparison">
-        <strong>Comparaison avec le test précédent :</strong>
+        <strong>Comparaison avec le test précédent de ${duration} s :</strong>
         <p>Δ Clics : ${clicks - prev.clicks}</p>
         <p>Δ CPS : ${(cps - prev.cps).toFixed(2)}</p>
         <p>Δ Fatigue : ${fatigue - prev.fatigue}</p>
         </div>`;
     }
 
-    history.push({clicks, cps, fatigue});
+    history.push({duration, clicks, cps, fatigue});
     localStorage.setItem(clientKey, JSON.stringify(history));
 
     summary.innerHTML = `
@@ -203,7 +220,7 @@ function finish() {
     <p>Clics : ${clicks}</p>
     <p>CPS moyen : ${cps}</p>
     <p>Indice de fatigue : ${fatigue}</p>`;
-    window.SportMindLabResult?.(clicks, "Clics");
+    window.SportMindLabResult?.(clicks, `Clics en ${duration} s`);
 
     comparison.innerHTML = comparisonText;
 

@@ -39,12 +39,10 @@ box-shadow:0 10px 25px rgba(0,0,0,0.1);text-align:left;margin:0 auto;}
 .review-arena .circle{position:absolute;width:26px;height:26px;border-width:3px;cursor:default;}
 .review-arena #central,.review-arena .central-review{top:50%;left:50%;transform:translate(-50%,-50%);}
 .review-target{
-border-color:#16a34a !important;
 background:rgba(34,197,94,.12);
 box-shadow:0 0 0 5px rgba(34,197,94,.35);
 }
 .review-choice{
-border-color:#dc2626 !important;
 background:rgba(239,68,68,.12);
 box-shadow:0 0 0 5px rgba(239,68,68,.35);
 }
@@ -72,6 +70,7 @@ background:linear-gradient(135deg, rgba(34,197,94,.14), rgba(239,68,68,.14));
 <option value="black">Fond noir</option>
 </select>
 </div>
+<p>Après le niveau 70 : apparitions plus brèves, cercles plus petits et davantage de distracteurs.</p>
 <button onclick="goCountdown()">Démarrer</button>
 </div>
 </div>
@@ -114,8 +113,10 @@ document.getElementById("pageReport").scrollTop=0;
 }
 }
 
-function appearanceTime(l){return startTime-(l-1)*(startTime-endTime)/(maxLevel-1);}
-function circlesCount(l){return l<=10?3:l<=25?4:l<=45?5:6;}
+function appearanceTime(l){
+return l<=maxLevel ? startTime-(l-1)*(startTime-endTime)/(maxLevel-1) : Math.max(16,endTime*Math.pow(.97,l-maxLevel));
+}
+function circlesCount(l){return l<=10?3:l<=25?4:l<=45?5:Math.min(12,6+Math.floor(Math.max(0,l-maxLevel)/5));}
 function shuffle(a){return a.sort(()=>Math.random()-0.5);}
 
 function setGap(c,g){
@@ -153,18 +154,31 @@ const refGap=Math.floor(Math.random()*4);
 setGap(central,refGap);
 central.classList.remove("invisible");
 
-let pos=shuffle([
+let positions=[
 {x:200,y:20},{x:350,y:120},{x:350,y:280},
 {x:200,y:380},{x:50,y:280},{x:50,y:120}
-]).slice(0,circlesCount(level));
+];
+const count=circlesCount(level);
+const size=level<=maxLevel?52:Math.max(32,52-(level-maxLevel)*.5);
+central.style.width=central.style.height=size+"px";
+central.style.borderWidth=Math.max(4,size*6/52)+"px";
+if(count>6){
+positions=Array.from({length:count},(_,i)=>{
+const angle=-Math.PI/2+i*Math.PI*2/count;
+return {x:230+180*Math.cos(angle)-size/2,y:230+180*Math.sin(angle)-size/2};
+});
+}
+let pos=shuffle(positions).slice(0,count);
 
 targetIndex=Math.floor(Math.random()*pos.length);
 
 pos.forEach((p,i)=>{
 const c=document.createElement("div");
 c.className="circle";
+c.style.width=c.style.height=size+"px";
+c.style.borderWidth=Math.max(4,size*6/52)+"px";
 c.style.left=p.x+"px";c.style.top=p.y+"px";
-setGap(c,i===targetIndex?refGap:(refGap+1)%4);
+setGap(c,i===targetIndex?refGap:(refGap+1+(level>maxLevel?Math.floor(Math.random()*3):0))%4);
 c.onclick=()=>handleChoice(i);
 arena.appendChild(c);
 });
@@ -195,8 +209,20 @@ circle.classList.add("central-review");
 return;
 }
 const peripheralIndex=index-1;
+const original=arena.querySelectorAll(".circle")[index];
+circle.style.left=((parseFloat(original.style.left)+original.offsetWidth/2)/arena.clientWidth*100)+"%";
+circle.style.top=((parseFloat(original.style.top)+original.offsetHeight/2)/arena.clientHeight*100)+"%";
+circle.style.transform="translate(-50%,-50%)";
 if(peripheralIndex===expectedIndex) circle.classList.add("review-target");
 if(peripheralIndex===givenIndex) circle.classList.add("review-choice");
+if(peripheralIndex===expectedIndex||peripheralIndex===givenIndex){
+const color=peripheralIndex===givenIndex?"#dc2626":"#16a34a";
+const rendered=getComputedStyle(original);
+["Top","Right","Bottom","Left"].forEach(side=>{
+const originalColor=rendered["border"+side+"Color"];
+circle.style["border"+side+"Color"]=originalColor==="rgba(0, 0, 0, 0)"||originalColor==="transparent"?"transparent":color;
+});
+}
 });
 return clone.outerHTML;
 }
@@ -208,6 +234,7 @@ setTimeout(()=>{cross.style.display="none";cb();},1200);
 
 function handleChoice(i){
 if(!canClick)return;
+canClick=false;
 responseTimes.push(performance.now()-responseStart);
 
 if(i!==targetIndex){

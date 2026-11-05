@@ -38,7 +38,7 @@ textarea{width:100%;height:100px;font-size:28px;letter-spacing:8px;text-align:ce
 <div class="panel">
 <h1>Mémoire en défilements</h1>
 <h2>Paramétrage</h2>
-<label>Niveau (1 à 20)<br><input type="number" id="level" min="1" max="20" value="1"></label>
+<label>Niveau de départ<br><input type="number" id="level" min="1" step="1" value="1"></label>
 <h3>Distracteurs</h3>
 <label><input type="checkbox" id="twoDigits" checked> Boules avec deux numéros</label>
 <label><input type="checkbox" id="noDigits" checked> Boules sans numéro</label>
@@ -97,11 +97,11 @@ function formatBallNumber(text){
 const colors=["#f4c542","#1d4ed8","#dc2626","#7c3aed","#ea580c","#16a34a","#6b7280","#111827","#facc15"];
 
 function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id).classList.add('active');}
-function getBallCount(level){return Math.min(level,9);}
-function getSpeed(level){if(level<=4)return 6000;if(level<=7)return 4000;if(level<=9)return 3000;if(level<=12)return 2000;if(level<=15)return 1000;if(level===16)return 800;if(level===17)return 600;if(level===18)return 400;if(level===19)return 200;return 80;}
+function getBallCount(level){return level<=20?Math.min(level,9):Math.min(40,9+Math.ceil((level-20)/3));}
+function getSpeed(level){if(level<=4)return 6000;if(level<=7)return 4000;if(level<=9)return 3000;if(level<=12)return 2000;if(level<=15)return 1000;if(level===16)return 800;if(level===17)return 600;if(level===18)return 400;if(level===19)return 200;return Math.max(40,80*Math.pow(.97,level-20));}
 
 function startSession(){
-currentLevel=parseInt(document.getElementById('level').value);
+currentLevel=Math.max(1,parseInt(document.getElementById('level').value,10)||1);
 settings={direction:direction.value,twoDigits:twoDigits.checked,noDigits:noDigits.checked};
 launchGame();
 }
@@ -211,7 +211,7 @@ showPage('page4');
 }
 
 function restartSameLevel(){launchGame();}
-function nextLevel(){if(currentLevel<20) currentLevel++; launchGame();}
+function nextLevel(){currentLevel++; launchGame();}
 function showSummary(){
 summary.innerHTML=`<p><strong>Sens :</strong> ${settings.direction}</p><p><strong>Distracteurs :</strong> ${settings.twoDigits?'2 chiffres ':''}${settings.noDigits?'sans numéro':''}</p><p><strong>Niveau réussi :</strong> ${successfulLevel}</p>`;
 showPage('page5');

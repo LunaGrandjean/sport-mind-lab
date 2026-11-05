@@ -133,6 +133,7 @@ input, button, select {
     <button onclick="startTest(true)">Démarrer</button><br>
     <button onclick="goFullscreen()">Mode plein écran</button>
     <p style="opacity:0.7">X = Match | N = No Match</p>
+    <p>Après les niveaux calibrés : apparitions plus brèves et orientations plus proches à distinguer.</p>
     <p>Match = même forme et même orientation. En mode « Formes & couleurs », ignorez la couleur : elle sert uniquement de distracteur.</p>
 </div>
 
@@ -178,7 +179,12 @@ let currentMode="classic";
 let currentTrialReview="", failedTrials=[];
 
 function displayTime(lvl){
-    return displayTimes[Math.min(lvl-1, displayTimes.length-1)];
+    if(lvl<=displayTimes.length) return displayTimes[lvl-1];
+    return Math.max(16,30*Math.pow(.97,lvl-displayTimes.length));
+}
+
+function orientationOffset(lvl){
+    return Math.max(15,90/(1+Math.max(0,lvl-displayTimes.length)*.08));
 }
 
 function goFullscreen(){
@@ -276,15 +282,15 @@ function showStimulus(){
                 second=createStimulus(s2, other[Math.floor(Math.random()*other.length)]);
             } else {
                 // Éviter les écarts de 1° qui paraissent identiques, y compris à la correction.
-                const offset=90*(1+Math.floor(Math.random()*3));
-                second=createStimulus(s2, first.shape, (first.angle+offset)%360);
+                const offset=level<=displayTimes.length ? 90*(1+Math.floor(Math.random()*3)) : orientationOffset(level)*(Math.random()<.5?-1:1);
+            second=createStimulus(s2, first.shape, (first.angle+offset+360)%360);
             }
         }
         isMatch=stimuliMatch(first, second);
     } else {
         const r=Math.random()*360;
         isMatch=Math.random()<0.5;
-        const secondAngle=isMatch ? r : Math.random()*360;
+        const secondAngle=isMatch ? r : level<=displayTimes.length ? Math.random()*360 : (r+orientationOffset(level)*(Math.random()<.5?-1:1)+360)%360;
         s1.className="stimulus circle";
         s2.className="stimulus circle";
         s1.style.border=s2.style.border="18px solid var(--test-foreground)";
@@ -308,6 +314,7 @@ function showStimulus(){
 
 function respond(choice){
     if(state!=="response") return;
+    state="feedback";
     reactionTimes.push(performance.now()-startResponse);
 
     if(choice!==isMatch){

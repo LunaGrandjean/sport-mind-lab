@@ -39,28 +39,7 @@
     <input id="age" type="hidden" value="0">
 
     <label>Niveau de départ</label>
-    <select id="startLevel">
-      <option value="1">Niveau 1</option>
-      <option value="2">Niveau 2</option>
-      <option value="3">Niveau 3</option>
-      <option value="4">Niveau 4</option>
-      <option value="5">Niveau 5</option>
-      <option value="6">Niveau 6</option>
-      <option value="7">Niveau 7</option>
-      <option value="8">Niveau 8</option>
-      <option value="9">Niveau 9</option>
-      <option value="10">Niveau 10</option>
-      <option value="11">Niveau 11</option>
-      <option value="12">Niveau 12</option>
-      <option value="13">Niveau 13</option>
-      <option value="14">Niveau 14</option>
-      <option value="15">Niveau 15</option>
-      <option value="16">Niveau 16</option>
-      <option value="17">Niveau 17</option>
-      <option value="18">Niveau 18</option>
-      <option value="19">Niveau 19</option>
-      <option value="20">Niveau 20</option>
-    </select>
+    <input id="startLevel" type="number" min="1" step="1" value="1">
 
     <label>Mode</label>
     <select id="mode">
@@ -198,6 +177,12 @@ const LEVELS = {
 let state = { level:1, counts:{}, selected:[], askedType:null, correctAnswer:0, bestLevel:0, attempts:[] };
 let activeIntervals = [];
 
+function configForLevel(level){
+  if(level<=20) return LEVELS[level];
+  const extra=level-20;
+  return {...LEVELS[20],speed:Math.max(40,50*Math.pow(.985,extra)),max:Math.min(40,30+Math.floor(extra/5)),density:Math.min(6,4.5+extra*.03),size:Math.max(.4,.65/(1+extra*.012))};
+}
+
 function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -208,7 +193,7 @@ async function startSession(){
   state.mode = mode.value; state.direction = direction.value;
   state.selected = Object.keys(BALL_TYPES).filter(type=>document.getElementById(type).checked);
   if(state.selected.length===0){ alert('Sélectionnez au moins un ballon'); return; }
-  state.level = Number(startLevel.value); state.bestLevel = 0;
+  state.level = Math.max(1,parseInt(startLevel.value,10)||1); state.bestLevel = 0;
   state.attempts = [];
   startButton.disabled=true;
   startButton.textContent='Chargement des ballons…';
@@ -240,7 +225,7 @@ function runLevel(){
 }
 
 function launchTest(){
-  const cfg = LEVELS[state.level];
+  const cfg = configForLevel(state.level);
   countdown.style.display='none';
   arena.style.display='block';
   arena.innerHTML='';
@@ -395,7 +380,7 @@ function validateAnswer(){
 }
 
 function restartSameLevel(){ runLevel(); }
-function nextLevel(){ if(state.level<20) state.level++; runLevel(); }
+function nextLevel(){ state.level++; runLevel(); }
 
 function resetApp(){
   showPage('p1');
