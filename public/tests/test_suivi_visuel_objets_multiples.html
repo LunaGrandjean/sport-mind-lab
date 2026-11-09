@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Suivi Visuel Multi-Objets</title>
 
 <style>
@@ -133,6 +134,12 @@ label{cursor:pointer}
 }
 </style>
 <link rel="stylesheet" href="./test-theme.css">
+<style>
+body.sl-harmonized{background:#701b35!important;color:#fff}
+body.sl-harmonized .page{background:#701b35!important;color:#fff!important}
+body.sl-harmonized h1,body.sl-harmonized h2,body.sl-harmonized label,body.sl-harmonized #trackingLevel{color:#fff}
+#cross,#goodAnswer{position:relative;z-index:2}
+</style>
 </head>
 
 <body>
@@ -144,7 +151,7 @@ label{cursor:pointer}
 <input id="nom" type="hidden" value="Session">
 <input id="prenom" type="hidden" value="Sportif">
 <input id="age" type="hidden" value="0">
-<p>Après le niveau 20 : davantage de boules, déplacements plus rapides et vitesses plus variables.</p>
+<p>À chaque bonne réponse, le niveau augmente. Les boules accélèrent progressivement ; les variations de vitesse et de trajectoire suivent la grille d’origine. Après le niveau 20, la difficulté continue d’augmenter.</p>
 <button onclick="startTest()">Démarrer</button>
 </div>
 </div>
@@ -152,7 +159,7 @@ label{cursor:pointer}
 <!-- PAGE 2 -->
 <div class="page" id="p2">
 <canvas id="cv"></canvas>
-<div id="trackingLevel" style="position:absolute;top:20px;left:20px;color:#061b3c;font-size:24px;font-weight:bold;pointer-events:none"></div>
+<div id="trackingLevel" style="position:absolute;top:20px;left:20px;font-size:24px;font-weight:bold;pointer-events:none"></div>
 <div id="timeBar"><div id="timeFill"></div></div>
 <div id="bottomBar"></div>
 <div id="cross">✖</div>
@@ -182,6 +189,8 @@ let level=1,errors=0,balls=[],startT,answered=false;
 let reactionTimes=[];
 let failedSnapshots=[];
 let animationFrame=null,feedbackActive=false,feedbackTimers=[];
+let previousFrameTime=null;
+const REFERENCE_FRAME_MS=1000/60;
 const DURATION=10000;
 const TOP_BARRIER=88;
 const BOTTOM_BARRIER=110;
@@ -214,7 +223,13 @@ const LEVEL_CONFIG = [
 function configForLevel(l){
 if(l<=LEVEL_CONFIG.length)return LEVEL_CONFIG[l-1];
 const extra=l-LEVEL_CONFIG.length;
-return {min:Math.min(24,10+Math.floor(extra/4)),max:Math.min(30,14+Math.floor(extra/4)),speed:Math.min(6,.63*(1+extra*.04)),var:Math.min(.9,.30+extra*.008)};
+return {min:Math.min(24,10+Math.floor(extra/4)),max:Math.min(30,14+Math.floor(extra/4)),speed:Math.min(1.575,.63*(1+extra*.012)),var:Math.min(.9,.30+extra*.008)};
+}
+
+function motionScaleForLevel(l){
+// L'original cumulait une boucle par niveau. Reproduire sa montée en vitesse
+// explicitement, sur une base de 60 Hz, avec une seule boucle d'animation.
+return Math.min(l,LEVEL_CONFIG.length);
 }
 
 function resize(){
@@ -260,6 +275,7 @@ feedbackTimers.forEach(clearTimeout);
 feedbackTimers=[];
 feedbackActive=false;
 answered=false;
+previousFrameTime=null;
 document.getElementById("trackingLevel").textContent=`Niveau ${level}`;
 cross.style.display=goodAnswer.style.display="none";
 balls=[];
@@ -299,8 +315,13 @@ ctx.stroke();
 ctx.restore();
 }
 
-function animate(){
+function animate(now=performance.now()){
 if(answered)return;
+const elapsed=previousFrameTime===null?REFERENCE_FRAME_MS:Math.min(50,Math.max(0,now-previousFrameTime));
+previousFrameTime=now;
+const movement=elapsed/REFERENCE_FRAME_MS*motionScaleForLevel(level);
+const steps=Math.ceil(movement);
+const step=steps?movement/steps:0;
 ctx.clearRect(0,0,cv.width,cv.height);
 let e=Date.now()-startT;
 timeFill.style.height=`${100-e/DURATION*100}%`;
@@ -314,15 +335,18 @@ if(level>20)b.s=Math.max(.1,Math.min(b.maxSpeed,b.s));
 b.a+=(Math.random()*2-1)*0.4;
 b.next=Date.now()+400;
 }
-b.x+=Math.cos(b.a)*b.s;
-b.y+=Math.sin(b.a)*b.s;
-b.rot+=b.s*0.1;
+// Les sous-pas gardent les rebonds dans la zone, même aux niveaux rapides.
+for(let i=0;i<steps;i++){
+b.x+=Math.cos(b.a)*b.s*step;
+b.y+=Math.sin(b.a)*b.s*step;
 
 if(b.x<b.r||b.x>cv.width-b.r)b.a=Math.PI-b.a;
 if(b.y<TOP_BARRIER+b.r||b.y>cv.height-b.r)b.a=-b.a;
 
 b.x=Math.max(b.r,Math.min(cv.width-b.r,b.x));
 b.y=Math.max(TOP_BARRIER+b.r,Math.min(cv.height-b.r,b.y));
+}
+b.rot+=b.s*movement*0.1;
 
 drawBall(b);
 });
