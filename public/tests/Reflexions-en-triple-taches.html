@@ -21,8 +21,20 @@
     label{display:block;margin:8px 0}
   </style>
 <link rel="stylesheet" href="./test-theme.css">
+<style>
+  .display-controls{min-height:60px;padding:8px 20px;display:flex;align-items:center;justify-content:flex-end;gap:12px}
+  .display-controls button{margin:0;font-size:14px;border-radius:10px;cursor:pointer;flex-shrink:0}
+  .display-controls button:focus-visible{outline:3px solid #0891b2;outline-offset:3px}
+  #fullscreenStatus{margin:0;font-size:14px;color:#475569}
+  body.sl-harmonized .page{min-height:calc(100vh - 60px)!important;min-height:calc(100dvh - 60px)!important}
+</style>
 </head>
 <body>
+
+<div class="display-controls" aria-label="Affichage de l’application">
+  <p id="fullscreenStatus" role="status" hidden></p>
+  <button id="fullscreenButton" type="button" aria-pressed="false" onclick="toggleFullscreen()">Plein écran</button>
+</div>
 
 <div id="page1" class="page active">
   <div class="card">
@@ -84,6 +96,41 @@ let score=1;
 
 const words=['ROUGE','BLEU','VERT','JAUNE','VIOLET','ORANGE','NOIR','ROSE'];
 const colors=['red','blue','green','gold','purple','orange','black','pink'];
+
+function updateFullscreenButton(){
+  const active=Boolean(document.fullscreenElement||document.webkitFullscreenElement);
+  const button=document.getElementById('fullscreenButton');
+  button.textContent=active?'Quitter le plein écran':'Plein écran';
+  button.setAttribute('aria-pressed',String(active));
+}
+
+function fullscreenUnavailable(){
+  const status=document.getElementById('fullscreenStatus');
+  status.textContent='Le plein écran n’est pas disponible ici. Vous pouvez continuer dans cette fenêtre ou ouvrir l’application dans un onglet.';
+  status.hidden=false;
+}
+
+async function enterFullscreen(){
+  if(document.fullscreenElement||document.webkitFullscreenElement)return;
+  const root=document.documentElement;
+  const request=root.requestFullscreen||root.webkitRequestFullscreen;
+  if(!request){fullscreenUnavailable();return;}
+  try{
+    await request.call(root);
+    document.getElementById('fullscreenStatus').hidden=true;
+    updateFullscreenButton();
+  }catch{fullscreenUnavailable();}
+}
+
+async function toggleFullscreen(){
+  if(document.fullscreenElement||document.webkitFullscreenElement){
+    const exit=document.exitFullscreen||document.webkitExitFullscreen;
+    try{await exit.call(document);updateFullscreenButton();}catch{fullscreenUnavailable();}
+  }else await enterFullscreen();
+}
+
+document.addEventListener('fullscreenchange',updateFullscreenButton);
+document.addEventListener('webkitfullscreenchange',updateFullscreenButton);
 
 function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -173,6 +220,8 @@ function renderOperation(data){
 }
 
 function startGame(){
+  // Demander le plein écran pendant le clic, avant le compte à rebours.
+  enterFullscreen();
   currentLevel=Math.max(1,parseInt(document.getElementById('level').value,10)||1);
   operationType=document.getElementById('operationType').value;
   showPage('page2');
@@ -192,10 +241,6 @@ function startGame(){
 function launchGame(){
   document.getElementById('countdown').style.display='none';
 
-  // Passage automatique en plein écran au lancement du jeu
-  if (document.documentElement.requestFullscreen) {
-    document.documentElement.requestFullscreen().catch(()=>{});
-  }
   document.getElementById('gameArea').style.display='grid';
 
   operationData=generateOperation(currentLevel,operationType);
