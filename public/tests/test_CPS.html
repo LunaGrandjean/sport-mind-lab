@@ -106,6 +106,7 @@ button:hover {
 <label for="temps">Durée du test (en secondes)</label>
 <input id="temps" type="number" min="0.1" step="any" value="30" placeholder="30">
 <p class="protocol-note">30 secondes par défaut. Le chronomètre démarre au premier appui sur Espace.</p>
+<p>Seuls les essais de 30 secondes comptent pour la note et les records. Les autres durées sont enregistrées comme exercices.</p>
 
 <div class="side-actions">
 <button onclick="startTest('G')">Démarrer Gauche</button>
@@ -323,6 +324,7 @@ function finish() {
     <p>Âge : ${age.value}</p>
     <p><strong>Côté : ${sideLabel(side)}</strong></p>
     <p>Temps : ${duration}s</p>
+    <p>${duration === 30 ? "Test CPS de référence (30 s)" : "Exercice — sans note ni record"}</p>
     <p>Clics : ${clicks}</p>
     <p>CPS moyen : ${cps}</p>
     <p>Indice de fatigue : ${fatigue}</p>`;

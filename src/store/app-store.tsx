@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import type { Athlete, BilanNote, Result, SessionNote } from "@/lib/domain";
+import { isCpsExercise } from "@/lib/domain";
 import { INITIAL_ATHLETES, INITIAL_RESULTS } from "@/lib/mock-data";
 import { clampRadarScore, RADAR_MAX_SCORE } from "@/lib/scoring";
 
@@ -23,6 +24,7 @@ interface AppStore {
   addAthlete: () => void;
   updateAthlete: (id: string, patch: Partial<Athlete>) => void;
   addResults: (results: Omit<Result, "id" | "date">[]) => void;
+  deleteResult: (athleteId: string, resultId: string) => void;
   addSessionNote: (session: Omit<SessionNote, "id">) => void;
   saveBilanNote: (bilan: Omit<BilanNote, "updatedAt">) => void;
   clearAthleteData: (athleteId: string) => void;
@@ -79,9 +81,12 @@ function loadPersistedStore(): PersistedStore {
 
     const results = (parsed.results ?? INITIAL_RESULTS).map((result) => ({
       ...result,
-      score: clampRadarScore(
-        result.score > RADAR_MAX_SCORE ? Math.round(result.score / 5) : result.score,
-      ),
+      score:
+        result.score === null || isCpsExercise(result)
+          ? null
+          : clampRadarScore(
+              result.score > RADAR_MAX_SCORE ? Math.round(result.score / 5) : result.score,
+            ),
     }));
 
     return {
@@ -118,13 +123,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const initialStore = useMemo(loadPersistedStore, []);
   const [athletes, setAthletes] = useState<Athlete[]>(initialStore.athletes);
   const [results, setResults] = useState<Result[]>(initialStore.results);
-  const [sessionNotes, setSessionNotes] = useState<SessionNote[]>(
-    initialStore.sessionNotes,
-  );
+  const [sessionNotes, setSessionNotes] = useState<SessionNote[]>(initialStore.sessionNotes);
   const [bilanNotes, setBilanNotes] = useState<BilanNote[]>(initialStore.bilanNotes);
-  const [selectedAthleteId, setSelectedAthleteId] = useState(
-    initialStore.selectedAthleteId,
-  );
+  const [selectedAthleteId, setSelectedAthleteId] = useState(initialStore.selectedAthleteId);
 
   useEffect(() => {
     window.localStorage.setItem(
@@ -166,6 +167,45 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       },
     ]);
   }, []);
+
+  const deleteResult = useCallback(
+    (athleteId: string, resultId: string) => {
+      const entry = results.find(
+        (result) => result.id === resultId && result.athleteId === athleteId,
+      );
+      if (!entry) return;
+      if (entry.axis === "Vitesse motrice / CPS") {
+        try {
+          const key = `sport-mind-lab:cps:${athleteId}`;
+          const history = JSON.parse(window.localStorage.getItem(key) || "[]");
+          if (Array.isArray(history)) {
+            const candidates = history.filter(
+              (item) =>
+                item &&
+                (entry.attemptId
+                  ? item.id === entry.attemptId
+                  : item.side === entry.side &&
+                    item.duration === entry.duration &&
+                    item.clicks === entry.rawScore &&
+                    Math.abs(Date.parse(item.date) - Date.parse(entry.date)) < 1000),
+            );
+            if (candidates.length === 1) {
+              window.localStorage.setItem(
+                key,
+                JSON.stringify(history.filter((item) => item !== candidates[0])),
+              );
+            }
+          }
+        } catch {
+          /* Une ancienne sauvegarde locale invalide ne bloque pas la suppression du résultat. */
+        }
+      }
+      setResults((prev) =>
+        prev.filter((result) => result.id !== resultId || result.athleteId !== athleteId),
+      );
+    },
+    [results],
+  );
 
   const saveBilanNote = useCallback((bilan: Omit<BilanNote, "updatedAt">) => {
     const nextBilan = {
@@ -229,9 +269,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     setResults(
       data.results.map((result) => ({
         ...result,
-        score: clampRadarScore(
-          result.score > RADAR_MAX_SCORE ? Math.round(result.score / 5) : result.score,
-        ),
+        score:
+          result.score === null || isCpsExercise(result)
+            ? null
+            : clampRadarScore(
+                result.score > RADAR_MAX_SCORE ? Math.round(result.score / 5) : result.score,
+              ),
       })),
     );
     setSessionNotes(data.sessionNotes ?? []);
@@ -240,8 +283,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AppStore>(() => {
-    const selectedAthlete =
-      athletes.find((a) => a.id === selectedAthleteId) ?? athletes[0];
+    const selectedAthlete = athletes.find((a) => a.id === selectedAthleteId) ?? athletes[0];
     return {
       athletes,
       results,
@@ -253,6 +295,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       addAthlete,
       updateAthlete,
       addResults,
+      deleteResult,
       addSessionNote,
       saveBilanNote,
       clearAthleteData,
@@ -270,6 +313,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     addAthlete,
     updateAthlete,
     addResults,
+    deleteResult,
     addSessionNote,
     saveBilanNote,
     clearAthleteData,

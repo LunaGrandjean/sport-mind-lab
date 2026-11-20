@@ -24,6 +24,7 @@ import {
   AXES,
   AXIS_SHORT,
   fullName,
+  isScoredResult,
   type Athlete,
   type Axis,
   type Result,
@@ -35,8 +36,7 @@ export const Route = createFileRoute("/")({
       { title: "Accueil - Top performances neurocognitives" },
       {
         name: "description",
-        content:
-          "Tableau des meilleures performances neurocognitives du cabinet par axe radar.",
+        content: "Tableau des meilleures performances neurocognitives du cabinet par axe radar.",
       },
     ],
   }),
@@ -86,7 +86,7 @@ function topByAxis(axis: Axis, athletes: Athlete[], results: Result[]) {
   const bestByAthlete = new Map<string, TopEntry>();
 
   for (const result of results) {
-    if (result.axis !== axis) continue;
+    if (result.axis !== axis || !isScoredResult(result)) continue;
     const athlete = athletesById.get(result.athleteId);
     if (!athlete) continue;
 
@@ -110,9 +110,7 @@ function athleteLabel(athlete: Athlete) {
 }
 
 function athleteMeta(athlete: Athlete) {
-  return [athlete.discipline, athlete.poste || athlete.niveau]
-    .filter(Boolean)
-    .join(" - ");
+  return [athlete.discipline, athlete.poste || athlete.niveau].filter(Boolean).join(" - ");
 }
 
 function Accueil() {
@@ -126,15 +124,11 @@ function Accueil() {
     <div className="space-y-5">
       <section className="overflow-hidden rounded-lg border border-cyan-100 bg-white shadow-[var(--shadow-card)]">
         <div className="bg-[linear-gradient(100deg,#061b3c_0%,#083c68_44%,#167fa9_100%)] px-6 py-5 text-center text-white">
-          <p className="text-2xl font-semibold uppercase tracking-[0.18em]">
-            Top performances
-          </p>
+          <p className="text-2xl font-semibold uppercase tracking-[0.18em]">Top performances</p>
         </div>
         <div className="h-1 bg-[linear-gradient(90deg,#0a3b66_0%,#1d8fbd_38%,#f3c400_58%,#1fa64a_76%,#c60018_100%)]" />
         <div className="border-b border-cyan-100 bg-cyan-50/40 px-6 py-3 text-center">
-          <p className="text-sm font-semibold text-[#08274d]">
-            Cabinet Neuro-Cognitif V. Rumeau
-          </p>
+          <p className="text-sm font-semibold text-[#08274d]">Cabinet Neuro-Cognitif V. Rumeau</p>
         </div>
 
         <div className="grid gap-x-7 gap-y-7 bg-[linear-gradient(180deg,#ffffff_0%,#f7fcff_100%)] p-5 sm:p-6 lg:grid-cols-2 xl:grid-cols-3">
@@ -236,9 +230,7 @@ function PerformancePanel({ axis, entries }: { axis: Axis; entries: TopEntry[] }
                 </div>
               ) : (
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-slate-300">
-                    Aucune donnée
-                  </p>
+                  <p className="truncate text-sm font-medium text-slate-300">Aucune donnée</p>
                   <p className="truncate text-[11px] text-slate-300">Score à enregistrer</p>
                 </div>
               )}

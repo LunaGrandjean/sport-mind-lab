@@ -48,10 +48,11 @@ export interface Result {
   id: string;
   athleteId: string;
   axis: Axis;
-  score: number;
+  score: number | null;
   rawScore?: number;
   side?: "G" | "D";
   duration?: number;
+  attemptId?: string;
   mode: string;
   niveau: string;
   commentaire?: string;
@@ -79,14 +80,7 @@ export interface BilanNote {
   updatedAt: string;
 }
 
-export type GroupKey =
-  | "tous"
-  | "discipline"
-  | "poste"
-  | "sexe"
-  | "age"
-  | "niveau"
-  | "pathologie";
+export type GroupKey = "tous" | "discipline" | "poste" | "sexe" | "age" | "niveau" | "pathologie";
 
 export const GROUP_LABELS: Record<GroupKey, string> = {
   tous: "Tous les sportifs",
@@ -121,11 +115,27 @@ export function matchesGroup(ref: Athlete, other: Athlete, key: GroupKey) {
   }
 }
 
-/** Moyenne par axe pour un ensemble de résultats. */
+/** Les anciens CPS sans durée gardent leur barème historique ; les durées connues hors protocole sont des exercices. */
+export function isCpsExercise(result: Pick<Result, "axis" | "duration">) {
+  return (
+    result.axis === "Vitesse motrice / CPS" &&
+    result.duration !== undefined &&
+    result.duration !== 30
+  );
+}
+
+export function isScoredResult(result: Result): result is Result & { score: number } {
+  return result.score !== null && Number.isFinite(result.score) && !isCpsExercise(result);
+}
+
+/** Moyenne par axe des résultats notés uniquement. */
 export function averageByAxis(results: Result[]): Record<Axis, number | null> {
   const out = {} as Record<Axis, number | null>;
   for (const axis of AXES) {
-    const scores = results.filter((r) => r.axis === axis).map((r) => r.score);
+    const scores = results
+      .filter(isScoredResult)
+      .filter((r) => r.axis === axis)
+      .map((r) => r.score);
     out[axis] = scores.length
       ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
       : null;
@@ -133,14 +143,7 @@ export function averageByAxis(results: Result[]): Record<Axis, number | null> {
   return out;
 }
 
-export const DISCIPLINES = [
-  "Football",
-  "Basketball",
-  "Handball",
-  "Rugby",
-  "Tennis",
-  "Athlétisme",
-];
+export const DISCIPLINES = ["Football", "Basketball", "Handball", "Rugby", "Tennis", "Athlétisme"];
 
 export const NIVEAUX = ["Loisir", "Régional", "National", "Professionnel", "Élite"];
 

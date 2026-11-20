@@ -41,14 +41,16 @@ function Tests() {
   const [rawScore, setRawScore] = useState("");
   const [mode, setMode] = useState("Standard");
   const [commentaire, setCommentaire] = useState("");
-  const [cpsResult, setCpsResult] = useState<string | null>(null);
+  const [cpsResult, setCpsResult] = useState<{ protocol: string; duration: number } | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const recordedAttempts = useRef(new Set<string>());
   const isCps = active?.id === "cps";
 
   const activeBareme = active?.axis ? baremeForAxis(active.axis) : null;
   const computedScore =
-    active?.axis && rawScore !== "" ? noteFromRaw(active.axis, Number(rawScore)) : null;
+    active?.axis && rawScore !== "" && (!isCps || cpsResult?.duration === 30)
+      ? noteFromRaw(active.axis, Number(rawScore))
+      : null;
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -73,8 +75,7 @@ function Tests() {
         )
           return;
         if (recordedAttempts.current.has(details.attemptId)) return;
-        const note = noteFromRaw(active.axis, numericScore);
-        if (note === null) return;
+        const note = details.duration === 30 ? noteFromRaw(active.axis, numericScore) : null;
         const protocol = `CPS · ${details.side === "G" ? "Gauche (G)" : "Droite (D)"} · ${details.duration} s`;
         recordedAttempts.current.add(details.attemptId);
         addResults([
@@ -85,14 +86,17 @@ function Tests() {
             rawScore: numericScore,
             side: details.side,
             duration: details.duration,
+            attemptId: details.attemptId,
             mode: protocol,
             niveau: selectedAthlete.niveau,
             source: "test",
           },
         ]);
         setRawScore(String(numericScore));
-        setCpsResult(protocol);
-        toast.success(`${protocol} : résultat enregistré`);
+        setCpsResult({ protocol, duration: details.duration });
+        toast.success(
+          `${protocol} : ${details.duration === 30 ? "résultat enregistré" : "exercice enregistré sans note"}`,
+        );
         return;
       }
       setRawScore(String(numericScore));
@@ -211,7 +215,7 @@ function Tests() {
                 <p className="text-sm font-semibold">Conversion bareme</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {isCps
-                    ? "Chaque essai terminé est enregistré automatiquement pour cet athlète, avec son côté et sa durée. Tu peux enchaîner gauche et droite."
+                    ? "Chaque essai est enregistré par côté. Seuls les CPS de 30 secondes comptent pour la note et les records ; les autres durées restent dans l’historique comme exercices."
                     : "Renseigne le resultat brut affiche par le test. La note radar /20 est calculee automatiquement."}
                 </p>
               </div>
@@ -229,10 +233,16 @@ function Tests() {
 
               <div className="rounded-md border border-cyan-100 bg-cyan-50 px-3 py-2">
                 <p className="text-xs font-medium uppercase tracking-wide text-cyan-900">
-                  Note radar
+                  {isCps && cpsResult && cpsResult.duration !== 30
+                    ? "Exercice · hors classement"
+                    : "Note radar"}
                 </p>
                 <p className="mt-1 text-2xl font-semibold tabular-nums text-primary">
-                  {computedScore === null ? "-/20" : `${computedScore}/20`}
+                  {isCps && cpsResult && cpsResult.duration !== 30
+                    ? "Sans note"
+                    : computedScore === null
+                      ? "-/20"
+                      : `${computedScore}/20`}
                 </p>
                 {activeBareme && (
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -244,7 +254,7 @@ function Tests() {
               {isCps ? (
                 <p role="status" className="rounded-md bg-cyan-50 p-3 text-sm text-cyan-900">
                   {cpsResult
-                    ? `${cpsResult} : enregistré dans l’historique.`
+                    ? `${cpsResult.protocol} : enregistré dans l’historique${cpsResult.duration === 30 ? "." : ", sans note ni record."}`
                     : "Choisis Gauche ou Droite dans le test pour commencer."}
                 </p>
               ) : (

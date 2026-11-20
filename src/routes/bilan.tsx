@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Download, FileSpreadsheet, Printer, Save, Upload } from "lucide-react";
+import { Download, FileSpreadsheet, Printer, Save, Trash2, Upload } from "lucide-react";
 import {
   PolarAngleAxis,
   PolarGrid,
@@ -21,6 +21,7 @@ import {
   AXES,
   AXIS_SHORT,
   fullName,
+  isScoredResult,
   type Athlete,
   type Result,
   type SessionNote,
@@ -109,6 +110,7 @@ function downloadBlob(content: string, fileName: string, type: string) {
 function latestResultsByAxis(results: Result[]) {
   return AXES.map((axis) => {
     const latest = results
+      .filter(isScoredResult)
       .filter((result) => result.axis === axis)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
 
@@ -122,6 +124,7 @@ function latestResultsByAxis(results: Result[]) {
 function bestResultsByAxis(results: Result[]) {
   return AXES.map((axis) => {
     const sorted = results
+      .filter(isScoredResult)
       .filter((result) => result.axis === axis)
       .sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
@@ -250,7 +253,7 @@ function buildExcelExport({
         (result) =>
           `<tr><td>${escapeHtml(formatDateTime(result.date))}</td><td>${escapeHtml(
             result.axis,
-          )}</td><td>${escapeHtml(result.score)}</td><td>${escapeHtml(
+          )}</td><td>${escapeHtml(isScoredResult(result) ? result.score : "Exercice (hors classement)")}</td><td>${escapeHtml(
             result.rawScore ?? "",
           )}</td><td>${escapeHtml(result.source)}</td><td>${escapeHtml(
             result.mode,
@@ -276,6 +279,7 @@ function Bilan() {
     saveBilanNote,
     exportData,
     importData,
+    deleteResult,
   } = useAppStore();
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const selectedName = fullName(selectedAthlete).trim() || "Nouveau sportif";
@@ -308,23 +312,22 @@ function Bilan() {
     [latest],
   );
   const testHistory = useMemo(() => {
-    const byDay = new Map<string, Result[]>();
-    for (const result of athleteResults) {
-      const key = formatDate(result.date);
-      byDay.set(key, [...(byDay.get(key) ?? []), result]);
-    }
-    return [...byDay.entries()]
-      .map(([date, sessionResults]) => ({
-        date,
-        results: sessionResults.sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-        ),
-      }))
-      .sort(
-        (a, b) =>
-          new Date(b.results[0].date).getTime() - new Date(a.results[0].date).getTime(),
-      );
+    return [...athleteResults].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
   }, [athleteResults]);
+
+  const removeResult = (result: Result) => {
+    const details = `${AXIS_SHORT[result.axis]}${result.side ? ` · ${result.side}` : ""} · ${formatDateTime(result.date)}${result.duration ? ` · ${result.duration} s` : ""} · score brut : ${result.rawScore ?? "non renseigné"}`;
+    if (
+      !window.confirm(
+        `Supprimer ce résultat de ${selectedName} ?\n${details}\nLes autres résultats et le dossier seront conservés.`,
+      )
+    )
+      return;
+    deleteResult(selectedAthlete.id, result.id);
+    toast.success("Résultat supprimé. Les notes et records ont été recalculés.");
+  };
 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -449,11 +452,7 @@ function Bilan() {
               Export JSON
             </Button>
             {isBilanLocked ? (
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={() => setIsBilanLocked(false)}
-              >
+              <Button variant="outline" className="gap-2" onClick={() => setIsBilanLocked(false)}>
                 Modifier le bilan
               </Button>
             ) : (
@@ -809,10 +808,7 @@ function Bilan() {
 
               <div className="hidden">
                 {latest.map(({ axis, result }) => (
-                  <div
-                    key={axis}
-                    className={`rounded-md border p-3 ${scoreTone(result?.score)}`}
-                  >
+                  <div key={axis} className={`rounded-md border p-3 ${scoreTone(result?.score)}`}>
                     <p className="text-xs font-medium opacity-80">{AXIS_SHORT[axis]}</p>
                     <p className="mt-2 text-2xl font-semibold tabular-nums">
                       {result ? `${result.score}/20` : "-/20"}
@@ -875,9 +871,7 @@ function Bilan() {
                           {formatDate(session.date)}
                         </td>
                         <td className="px-4 py-3">{session.title}</td>
-                        <td className="px-4 py-3 whitespace-pre-wrap">
-                          {session.content || "-"}
-                        </td>
+                        <td className="px-4 py-3 whitespace-pre-wrap">{session.content || "-"}</td>
                         <td className="px-4 py-3 whitespace-pre-wrap">
                           {session.objectives || "-"}
                         </td>
@@ -901,6 +895,10 @@ function Bilan() {
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 Historique des tests
               </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Supprime un essai avec la corbeille. Les CPS d’une durée différente de 30 secondes
+                sont des exercices sans note ni record.
+              </p>
             </div>
             {testHistory.length ? (
               <table className="w-full text-sm">
@@ -908,31 +906,51 @@ function Bilan() {
                   <tr>
                     <th className="px-4 py-3 font-medium">Date</th>
                     <th className="px-4 py-3 font-medium">Tests</th>
+                    <th className="px-4 py-3 font-medium">Durée / score brut</th>
                     <th className="px-4 py-3 font-medium">Notes</th>
                     <th className="px-4 py-3 font-medium">Commentaires</th>
+                    <th className="bilan-print-skip px-4 py-3 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {testHistory.map((session) => (
-                    <tr key={session.date} className="align-top">
+                  {testHistory.map((result) => (
+                    <tr key={result.id} data-result-id={result.id} className="align-top">
                       <td className="whitespace-nowrap px-4 py-3 font-medium">
-                        {session.date}
+                        {formatDateTime(result.date)}
                       </td>
                       <td className="px-4 py-3">
-                        {session.results.map((result) =>
-                          `${AXIS_SHORT[result.axis]}${result.side ? ` · ${result.side === "G" ? "Gauche (G)" : "Droite (D)"}` : ""}`,
-                        ).join(", ")}
+                        {AXIS_SHORT[result.axis]}
+                        {result.side
+                          ? ` · ${result.side === "G" ? "Gauche (G)" : "Droite (D)"}`
+                          : ""}
+                      </td>
+                      <td className="px-4 py-3">
+                        {result.duration !== undefined
+                          ? `${result.duration} s · `
+                          : result.axis === "Vitesse motrice / CPS"
+                            ? "Durée non renseignée · "
+                            : ""}
+                        {result.rawScore ?? "-"}
+                        {result.axis === "Vitesse motrice / CPS" ? " clics" : ""}
                       </td>
                       <td className="px-4 py-3 tabular-nums">
-                        {session.results
-                          .map((result) => `${AXIS_SHORT[result.axis]}${result.side ? ` ${result.side}` : ""} ${result.score}/20${result.duration ? ` (${result.duration} s · ${result.rawScore} clics)` : ""}`)
-                          .join(" - ")}
+                        {isScoredResult(result)
+                          ? `${result.score}/20`
+                          : "Exercice (hors classement)"}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
-                        {session.results
-                          .map((result) => result.commentaire)
-                          .filter(Boolean)
-                          .join(" - ") || "-"}
+                        {result.commentaire || "-"}
+                      </td>
+                      <td className="bilan-print-skip px-4 py-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1 text-red-700"
+                          onClick={() => removeResult(result)}
+                          aria-label={`Supprimer le résultat ${AXIS_SHORT[result.axis]} du ${formatDateTime(result.date)}`}
+                        >
+                          <Trash2 className="h-4 w-4" /> Supprimer
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -968,20 +986,12 @@ function MiniStat({ label, value }: { label: string; value: number }) {
   );
 }
 
-function SessionText({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | undefined;
-}) {
+function SessionText({ label, value }: { label: string; value: string | undefined }) {
   if (!value?.trim()) return null;
 
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{value}</p>
     </div>
   );
