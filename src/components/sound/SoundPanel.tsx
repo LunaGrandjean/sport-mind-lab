@@ -17,16 +17,23 @@ type Palette = "voix" | "instruments" | "foule";
 
 const VOICES = ["ha", "hé", "ho"] as const;
 const CROWD_ANNOUNCEMENTS = ["À gauche", "À droite", "Change"] as const;
-const INSTRUMENTS: Record<string, number> = {
-  Cloche: 880,
-  Bip: 1200,
-  Grave: 220,
-  Bois: 440,
-};
+const INSTRUMENTS = ["Piano", "Flûte", "Trompette"] as const;
+
+function instrumentName(value: string) {
+  const normalized = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+  if (["piano", "cloche", "bois"].includes(normalized)) return "Piano";
+  if (["flute", "bip"].includes(normalized)) return "Flûte";
+  if (["trompette", "trumpet", "grave"].includes(normalized)) return "Trompette";
+  return null;
+}
 
 const DEFAULT_SEQUENCES: Record<Palette, string> = {
   voix: "ha, hé, ho, ha",
-  instruments: "Cloche, Bip, Grave",
+  instruments: "Piano, Flûte, Trompette",
   foule: "À gauche, À droite, Change",
 };
 
@@ -68,20 +75,57 @@ export function SoundPanel() {
     window.speechSynthesis.speak(utterance);
   }, []);
 
-  const tone = useCallback((freq: number, duration = 0.4, volume = 0.25) => {
-    const ctx = getCtx();
-    void ctx.resume();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.frequency.value = freq;
-    osc.type = "sine";
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(volume, ctx.currentTime + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + duration + 0.02);
-  }, []);
+  const tone = useCallback(
+    (
+      freq: number,
+      duration = 0.4,
+      volume = 0.25,
+      type: OscillatorType = "sine",
+      attack = 0.01,
+      hold = attack,
+    ) => {
+      const ctx = getCtx();
+      void ctx.resume();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = freq;
+      osc.type = type;
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + attack);
+      if (hold > attack) gain.gain.setValueAtTime(volume, ctx.currentTime + hold);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + duration + 0.015);
+      osc.connect(gain).connect(ctx.destination);
+      osc.onended = () => {
+        osc.disconnect();
+        gain.disconnect();
+      };
+      osc.start();
+      osc.stop(ctx.currentTime + duration + 0.02);
+    },
+    [],
+  );
+
+  const playInstrument = useCallback(
+    (value: string) => {
+      const name = instrumentName(value);
+      if (!name) {
+        setLast(`Instrument inconnu : ${value}. Choisir Piano, Flûte ou Trompette.`);
+        return;
+      }
+      setLast(name);
+      if (name === "Piano") {
+        tone(440, 0.95, 0.32, "triangle", 0.005);
+        tone(880, 0.42, 0.12, "sine", 0.003);
+        tone(1320, 0.22, 0.06, "sine", 0.002);
+      } else if (name === "Flûte") {
+        tone(784, 1.1, 0.28, "sine", 0.16, 0.55);
+      } else {
+        tone(196, 0.7, 0.22, "sawtooth", 0.035, 0.3);
+      }
+    },
+    [tone],
+  );
 
   const cheerBurst = useCallback((ctx: AudioContext, destination: AudioNode) => {
     const duration = 0.7 + Math.random() * 0.55;
@@ -181,7 +225,7 @@ export function SoundPanel() {
   const getPool = useCallback(() => {
     if (palette === "voix") return [...VOICES];
     if (palette === "foule") return [...CROWD_ANNOUNCEMENTS];
-    return Object.keys(INSTRUMENTS);
+    return [...INSTRUMENTS];
   }, [palette]);
 
   const fire = useCallback(() => {
@@ -195,18 +239,19 @@ export function SoundPanel() {
         ? seq[stepRef.current++ % seq.length]
         : pool[Math.floor(Math.random() * pool.length)];
 
-    setLast(value);
+    if (!value) return;
 
     if (palette === "instruments") {
-      tone(INSTRUMENTS[value] ?? 660);
+      playInstrument(value);
       return;
     }
+    setLast(value);
 
     if (palette === "foule") {
       tone(1480, 0.14, 0.2);
     }
     speak(value);
-  }, [getPool, mode, palette, sequence, speak, tone]);
+  }, [getPool, mode, palette, sequence, speak, tone, playInstrument]);
 
   useEffect(() => {
     if (playing && palette === "foule") {
@@ -267,10 +312,7 @@ export function SoundPanel() {
 
   if (!open) {
     return (
-      <Button
-        onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-40 gap-2 shadow-lg"
-      >
+      <Button onClick={() => setOpen(true)} className="fixed bottom-6 right-6 z-40 gap-2 shadow-lg">
         <Volume2 className="h-4 w-4" />
         Sons / double tâche
       </Button>
@@ -319,6 +361,28 @@ export function SoundPanel() {
           </div>
         </div>
 
+        {palette === "instruments" && (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Piano percussif · Flûte douce et aiguë · Trompette grave et cuivrée
+            </p>
+            <div className="flex flex-wrap gap-1">
+              {INSTRUMENTS.map((name) => (
+                <Button
+                  key={name}
+                  size="sm"
+                  variant="outline"
+                  disabled={playing}
+                  onClick={() => playInstrument(name)}
+                  aria-label={`Écouter ${name}`}
+                >
+                  {name}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {mode === "sequence" && (
           <div className="space-y-1">
             <Label className="text-[11px] uppercase text-muted-foreground">
@@ -333,9 +397,7 @@ export function SoundPanel() {
         )}
 
         <div className="space-y-1">
-          <Label className="text-[11px] uppercase text-muted-foreground">
-            Intervalle (ms)
-          </Label>
+          <Label className="text-[11px] uppercase text-muted-foreground">Intervalle (ms)</Label>
           <Input
             type="number"
             step={100}
@@ -348,17 +410,13 @@ export function SoundPanel() {
         {palette === "foule" && (
           <div className="space-y-2 rounded-md bg-cyan-50 px-3 py-2 text-xs text-cyan-900">
             <p>
-              En lecture, un brouhaha de stade avec encouragements reste actif et les
-              annonces sont envoyées par dessus.
+              En lecture, un brouhaha de stade avec encouragements reste actif et les annonces sont
+              envoyées par dessus.
             </p>
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <Label className="text-[11px] uppercase text-cyan-900">
-                  Volume foule
-                </Label>
-                <span className="font-medium tabular-nums">
-                  {Math.round(crowdVolume * 100)}%
-                </span>
+                <Label className="text-[11px] uppercase text-cyan-900">Volume foule</Label>
+                <span className="font-medium tabular-nums">{Math.round(crowdVolume * 100)}%</span>
               </div>
               <Input
                 type="range"
@@ -384,8 +442,8 @@ export function SoundPanel() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Dernier signal : <span className="font-medium text-foreground">{last}</span> -
-          barre d'espace pour déclencher
+          Dernier signal : <span className="font-medium text-foreground">{last}</span> - barre
+          d'espace pour déclencher
         </p>
       </div>
     </div>
