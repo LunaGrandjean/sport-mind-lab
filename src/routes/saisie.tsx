@@ -15,10 +15,10 @@ import { useAppStore } from "@/store/app-store";
 
 const axisImages: Partial<Record<Axis, string>> = {
   "Dissociation motrice": "/cps.png",
-  "PrÃ©cision motrice": "/precision-motrice.png",
+  "Précision motrice": "/precision-motrice.png",
   Attention: "/attention.png",
   Inhibition: "/inhibition.png",
-  "Temps perception / traitement / dÃ©cision / rÃ©action": "/temps-de-perception.png",
+  "Temps perception / traitement / décision / réaction": "/temps-de-perception.png",
 };
 
 axisImages["Dissociation motrice"] = "/dissociation-motrice.png";
@@ -28,18 +28,13 @@ if (precisionAxis) {
   axisImages[precisionAxis] = "/precision-motrice.png";
 }
 
-const reactionTimeAxis = MANUAL_SCORE_AXES.find((axis) =>
-  axis.startsWith("Temps perception"),
-);
+const reactionTimeAxis = MANUAL_SCORE_AXES.find((axis) => axis.startsWith("Temps perception"));
 if (reactionTimeAxis) {
   axisImages[reactionTimeAxis] = "/temps-de-preceptiontraitementdecisionreaction.jpg";
 }
 
 function emptyManualScores() {
-  return Object.fromEntries(MANUAL_SCORE_AXES.map((axis) => [axis, ""])) as Record<
-    Axis,
-    string
-  >;
+  return Object.fromEntries(MANUAL_SCORE_AXES.map((axis) => [axis, ""])) as Record<Axis, string>;
 }
 
 export const Route = createFileRoute("/saisie")({
@@ -61,18 +56,26 @@ function Saisie() {
   const selectedName = fullName(selectedAthlete).trim() || "Nouveau sportif";
 
   const [rawScores, setRawScores] = useState<Record<Axis, string>>(emptyManualScores);
+  const [precisionScores, setPrecisionScores] = useState({ G: "", D: "" });
   const [mode, setMode] = useState("Cabinet");
   const [commentaire, setCommentaire] = useState("");
 
   useEffect(() => {
     setRawScores(emptyManualScores());
+    setPrecisionScores({ G: "", D: "" });
     setMode("Cabinet");
     setCommentaire("");
   }, [selectedAthlete.id]);
 
   const save = () => {
-    const entries = MANUAL_SCORE_AXES.flatMap((axis) => {
-      const value = rawScores[axis];
+    const inputs: { axis: Axis; value: string; side?: "G" | "D" }[] = [];
+    for (const axis of MANUAL_SCORE_AXES) {
+      if (axis === "Précision motrice") {
+        for (const side of ["G", "D"] as const)
+          inputs.push({ axis, value: precisionScores[side], side });
+      } else inputs.push({ axis, value: rawScores[axis] });
+    }
+    const entries = inputs.flatMap(({ axis, value, side }) => {
       if (!value) return [];
       const rawScore = Number(value);
       if (Number.isNaN(rawScore)) return [];
@@ -84,6 +87,7 @@ function Saisie() {
           axis,
           score: note,
           rawScore,
+          ...(side ? { side } : {}),
           mode,
           niveau: selectedAthlete.niveau,
           commentaire,
@@ -100,6 +104,7 @@ function Saisie() {
     addResults(entries);
     toast.success(`${entries.length} note(s) /20 enregistrée(s)`);
     setRawScores(emptyManualScores());
+    setPrecisionScores({ G: "", D: "" });
     setCommentaire("");
   };
 
@@ -141,24 +146,64 @@ function Saisie() {
                     <p className="mt-1 text-xs text-muted-foreground">{bareme.label}</p>
                   </div>
                 </div>
-                <Input
-                  type="number"
-                  step="any"
-                  placeholder={bareme.rawLabel}
-                  value={rawScore}
-                  onChange={(event) =>
-                    setRawScores((prev) => ({
-                      ...prev,
-                      [axis]: event.target.value,
-                    }))
-                  }
-                />
-                <div className="flex items-center justify-between rounded-md bg-cyan-50 px-3 py-2 text-sm">
-                  <span className="text-cyan-900">Note radar</span>
-                  <span className="font-semibold tabular-nums text-primary">
-                    {note === null ? "-/20" : `${note}/20`}
-                  </span>
-                </div>
+                {axis === "Précision motrice" ? (
+                  <>
+                    {(["G", "D"] as const).map((side) => {
+                      const value = precisionScores[side];
+                      const sideNote = value === "" ? null : noteFromRaw(axis, Number(value));
+                      return (
+                        <div key={side} className="space-y-1">
+                          <Label htmlFor={`precision-${side}`}>
+                            {side === "G" ? "Gauche (G)" : "Droite (D)"}
+                          </Label>
+                          <Input
+                            id={`precision-${side}`}
+                            type="number"
+                            min="0"
+                            max="10"
+                            step="0.5"
+                            placeholder="Résultat sur 10"
+                            value={value}
+                            onChange={(event) =>
+                              setPrecisionScores((previous) => ({
+                                ...previous,
+                                [side]: event.target.value,
+                              }))
+                            }
+                          />
+                          <p className="text-sm text-cyan-900">
+                            Note : {sideNote === null ? "-/20" : `${sideNote}/20`}
+                          </p>
+                        </div>
+                      );
+                    })}
+                    <p className="text-xs text-muted-foreground">
+                      Le tableau des records retient le côté le moins performant. Les deux côtés
+                      doivent être renseignés.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Input
+                      type="number"
+                      step="any"
+                      placeholder={bareme.rawLabel}
+                      value={rawScore}
+                      onChange={(event) =>
+                        setRawScores((prev) => ({
+                          ...prev,
+                          [axis]: event.target.value,
+                        }))
+                      }
+                    />
+                    <div className="flex items-center justify-between rounded-md bg-cyan-50 px-3 py-2 text-sm">
+                      <span className="text-cyan-900">Note radar</span>
+                      <span className="font-semibold tabular-nums text-primary">
+                        {note === null ? "-/20" : `${note}/20`}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             );
           })}

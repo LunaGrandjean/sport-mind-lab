@@ -20,15 +20,8 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/store/app-store";
-import {
-  AXES,
-  AXIS_SHORT,
-  fullName,
-  isScoredResult,
-  type Athlete,
-  type Axis,
-  type Result,
-} from "@/lib/domain";
+import { AXES, AXIS_SHORT, fullName, type Athlete, type Axis } from "@/lib/domain";
+import { topByAxis, usesWeakerSide, type TopEntry } from "@/lib/records";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -74,36 +67,6 @@ const AXIS_HEADER_STYLES: Record<Axis, string> = {
   Inhibition: "from-[#0f5132] to-[#2aa658]",
   "Temps perception / traitement / décision / réaction": "from-[#8a5b00] to-[#d8aa16]",
 };
-
-interface TopEntry {
-  athlete: Athlete;
-  score: number;
-  date: string;
-}
-
-function topByAxis(axis: Axis, athletes: Athlete[], results: Result[]) {
-  const athletesById = new Map(athletes.map((athlete) => [athlete.id, athlete]));
-  const bestByAthlete = new Map<string, TopEntry>();
-
-  for (const result of results) {
-    if (result.axis !== axis || !isScoredResult(result)) continue;
-    const athlete = athletesById.get(result.athleteId);
-    if (!athlete) continue;
-
-    const previous = bestByAthlete.get(result.athleteId);
-    if (!previous || result.score > previous.score) {
-      bestByAthlete.set(result.athleteId, {
-        athlete,
-        score: result.score,
-        date: result.date,
-      });
-    }
-  }
-
-  return [...bestByAthlete.values()]
-    .sort((a, b) => b.score - a.score || b.date.localeCompare(a.date))
-    .slice(0, 3);
-}
 
 function athleteLabel(athlete: Athlete) {
   return fullName(athlete).trim() || "Sportif sans nom";
@@ -196,13 +159,18 @@ function PerformancePanel({ axis, entries }: { axis: Axis; entries: TopEntry[] }
   const rows = [0, 1, 2];
 
   return (
-    <article className="min-w-0">
+    <article className="min-w-0" data-record-axis={axis}>
       <div
         className={`flex items-center justify-between border-b-2 border-[#071b3d] bg-gradient-to-r px-3 py-1.5 text-white ${AXIS_HEADER_STYLES[axis]}`}
       >
         <h2 className="truncate text-sm font-semibold italic">{AXIS_SHORT[axis]}</h2>
         <Icon className="h-4 w-4 shrink-0 text-cyan-100" />
       </div>
+      {usesWeakerSide(axis) && (
+        <p className="py-2 text-xs text-slate-600">
+          Côté le moins performant retenu. Un résultat gauche et un résultat droit sont nécessaires.
+        </p>
+      )}
 
       <div className="divide-y divide-slate-300 border-b border-slate-400">
         {rows.map((rank) => {
@@ -227,6 +195,14 @@ function PerformancePanel({ axis, entries }: { axis: Axis; entries: TopEntry[] }
                   <p className="truncate text-[11px] text-slate-500">
                     {athleteMeta(entry.athlete) || "Profil à compléter"}
                   </p>
+                  {entry.side && (
+                    <p className="text-xs font-medium text-[#08274d]">
+                      {entry.side === "G" ? "Gauche (G)" : "Droite (D)"}
+                      {entry.rawScore !== undefined
+                        ? ` · ${entry.rawScore}${axis === "Vitesse motrice / CPS" ? " clics" : " / 10"}`
+                        : ""}
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="min-w-0">
