@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { ExternalLink, Save } from "lucide-react";
 import { toast } from "sonner";
@@ -18,11 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { baremeForAxis, noteFromRaw } from "@/lib/scoring";
-import {
-  HTML_TESTS,
-  toolUrlWithAthlete,
-  type HtmlTool,
-} from "@/lib/test-definitions";
+import { HTML_TESTS, toolUrlWithAthlete, type HtmlTool } from "@/lib/test-definitions";
 import { useAppStore } from "@/store/app-store";
 
 export const Route = createFileRoute("/tests")({
@@ -45,6 +41,10 @@ function Tests() {
   const [rawScore, setRawScore] = useState("");
   const [mode, setMode] = useState("Standard");
   const [commentaire, setCommentaire] = useState("");
+  const [cpsResult, setCpsResult] = useState<string | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const recordedAttempts = useRef(new Set<string>());
+  const isCps = active?.id === "cps";
 
   const activeBareme = active?.axis ? baremeForAxis(active.axis) : null;
   const computedScore =
@@ -53,24 +53,66 @@ function Tests() {
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
+      if (!active?.axis || event.source !== iframeRef.current?.contentWindow) return;
       if (event.data?.type !== "sport-mind-lab:test-result") return;
-      setRawScore(String(event.data.rawScore));
+      const numericScore = event.data.rawScore;
+      if (typeof numericScore !== "number" || !Number.isFinite(numericScore)) return;
+      if (active.id === "cps") {
+        const details = event.data.details;
+        if (
+          details?.testId !== "cps" ||
+          details.athleteId !== selectedAthlete.id ||
+          (details.side !== "G" && details.side !== "D") ||
+          typeof details.duration !== "number" ||
+          !Number.isFinite(details.duration) ||
+          details.duration <= 0 ||
+          typeof details.attemptId !== "string" ||
+          !details.attemptId ||
+          !Number.isInteger(numericScore) ||
+          numericScore < 0
+        )
+          return;
+        if (recordedAttempts.current.has(details.attemptId)) return;
+        const note = noteFromRaw(active.axis, numericScore);
+        if (note === null) return;
+        const protocol = `CPS · ${details.side === "G" ? "Gauche (G)" : "Droite (D)"} · ${details.duration} s`;
+        recordedAttempts.current.add(details.attemptId);
+        addResults([
+          {
+            athleteId: selectedAthlete.id,
+            axis: active.axis,
+            score: note,
+            rawScore: numericScore,
+            side: details.side,
+            duration: details.duration,
+            mode: protocol,
+            niveau: selectedAthlete.niveau,
+            source: "test",
+          },
+        ]);
+        setRawScore(String(numericScore));
+        setCpsResult(protocol);
+        toast.success(`${protocol} : résultat enregistré`);
+        return;
+      }
+      setRawScore(String(numericScore));
       toast.success(`${event.data.label ?? "Resultat"} detecte automatiquement`);
     };
 
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, []);
+  }, [active, selectedAthlete.id, selectedAthlete.niveau, addResults]);
 
   const launch = (test: HtmlTool) => {
     setActive(test);
     setRawScore("");
     setMode("Standard");
     setCommentaire("");
+    setCpsResult(null);
   };
 
   const save = () => {
-    if (!active?.axis) return;
+    if (!active?.axis || active.id === "cps") return;
     const numericRawScore = Number(rawScore);
     if (rawScore === "" || Number.isNaN(numericRawScore)) {
       toast.error("Resultat brut invalide");
@@ -125,9 +167,7 @@ function Tests() {
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-[#0b7a8f]">
                     Objectif
                   </p>
-                  <p className="mt-0.5 text-[13px] leading-snug text-slate-700">
-                    {test.objective}
-                  </p>
+                  <p className="mt-0.5 text-[13px] leading-snug text-slate-700">{test.objective}</p>
                 </div>
                 <p className="text-[12px] leading-snug text-muted-foreground">
                   {test.instructions}
@@ -148,8 +188,8 @@ function Tests() {
           <DialogHeader className="shrink-0 border-b border-border px-5 py-4">
             <DialogTitle>{active?.title}</DialogTitle>
             <DialogDescription>
-              Le test HTML est charge dans l'application. Le panneau sons flottant peut
-              rester actif en parallele.
+              Le test HTML est charge dans l'application. Le panneau sons flottant peut rester actif
+              en parallele.
             </DialogDescription>
           </DialogHeader>
 
@@ -157,6 +197,7 @@ function Tests() {
             <div className="min-h-[60vh] overflow-hidden bg-muted lg:min-h-0">
               {active && (
                 <iframe
+                  ref={iframeRef}
                   title={active.title}
                   src={toolUrlWithAthlete(active.htmlPath, selectedAthlete)}
                   className="h-[68vh] w-full border-0 bg-white lg:h-full"
@@ -169,8 +210,9 @@ function Tests() {
               <div>
                 <p className="text-sm font-semibold">Conversion bareme</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Renseigne le resultat brut affiche par le test. La note radar /20 est
-                  calculee automatiquement.
+                  {isCps
+                    ? "Chaque essai terminé est enregistré automatiquement pour cet athlète, avec son côté et sa durée. Tu peux enchaîner gauche et droite."
+                    : "Renseigne le resultat brut affiche par le test. La note radar /20 est calculee automatiquement."}
                 </p>
               </div>
 
@@ -180,6 +222,7 @@ function Tests() {
                   type="number"
                   step="any"
                   value={rawScore}
+                  readOnly={isCps}
                   onChange={(event) => setRawScore(event.target.value)}
                 />
               </div>
@@ -198,19 +241,29 @@ function Tests() {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label>Mode / protocole</Label>
-                <Input value={mode} onChange={(event) => setMode(event.target.value)} />
-              </div>
+              {isCps ? (
+                <p role="status" className="rounded-md bg-cyan-50 p-3 text-sm text-cyan-900">
+                  {cpsResult
+                    ? `${cpsResult} : enregistré dans l’historique.`
+                    : "Choisis Gauche ou Droite dans le test pour commencer."}
+                </p>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label>Mode / protocole</Label>
+                    <Input value={mode} onChange={(event) => setMode(event.target.value)} />
+                  </div>
 
-              <div className="space-y-2">
-                <Label>Commentaire</Label>
-                <Textarea
-                  value={commentaire}
-                  onChange={(event) => setCommentaire(event.target.value)}
-                  placeholder="Optionnel"
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label>Commentaire</Label>
+                    <Textarea
+                      value={commentaire}
+                      onChange={(event) => setCommentaire(event.target.value)}
+                      placeholder="Optionnel"
+                    />
+                  </div>
+                </>
+              )}
 
               {active && (
                 <Button asChild variant="outline" className="w-full gap-2">
@@ -231,9 +284,9 @@ function Tests() {
             <Button variant="outline" onClick={() => setActive(null)}>
               Fermer
             </Button>
-            <Button className="gap-2" onClick={save}>
+            <Button className="gap-2" onClick={save} disabled={isCps}>
               <Save className="h-4 w-4" />
-              Enregistrer la note /20
+              {isCps ? "Enregistrement automatique" : "Enregistrer la note /20"}
             </Button>
           </DialogFooter>
         </DialogContent>

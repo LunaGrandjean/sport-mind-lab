@@ -23,7 +23,7 @@
     document.body.classList.add("sl-harmonized");
   }
 
-  window.SportMindLabResult = function (rawScore, label) {
+  window.SportMindLabResult = function (rawScore, label, details) {
     var numericScore = Number(rawScore);
     if (Number.isNaN(numericScore)) return;
     window.parent.postMessage(
@@ -31,6 +31,7 @@
         type: "sport-mind-lab:test-result",
         rawScore: numericScore,
         label: label || "Résultat brut",
+        details: details || null,
       },
       window.location.origin
     );

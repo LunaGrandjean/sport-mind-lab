@@ -83,6 +83,13 @@ button:hover {
     border-radius:8px;
     margin-top:20px;
 }
+.side-actions { display:flex; gap:12px; flex-wrap:wrap; }
+.side-actions button { flex:1 1 180px; }
+#testSide { position:fixed; top:24px; left:24px; color:#102a43; font-size:24px; font-weight:700; }
+.history-columns { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:20px; }
+.history-scroll { max-height:320px; overflow:auto; }
+.history-columns table { width:100%; border-collapse:collapse; font-size:14px; }
+.history-columns th,.history-columns td { padding:8px 5px; text-align:left; border-bottom:1px solid #dce4ec; }
 </style>
 <link rel="stylesheet" href="./test-theme.css">
 </head>
@@ -100,10 +107,15 @@ button:hover {
 <input id="temps" type="number" min="0.1" step="any" value="30" placeholder="30">
 <p class="protocol-note">30 secondes par défaut. Le chronomètre démarre au premier appui sur Espace.</p>
 
-<button onclick="startTest()">Démarrer le test</button>
+<div class="side-actions">
+<button onclick="startTest('G')">Démarrer Gauche</button>
+<button onclick="startTest('D')">Démarrer Droite</button>
+</div>
+<section id="menuHistory" aria-label="Historique CPS par côté"></section>
 </div>
 
 <div id="testScreen">
+<div id="testSide"></div>
 <div id="timer"></div>
 </div>
 
@@ -113,7 +125,12 @@ button:hover {
 <div id="comparison"></div>
 <canvas id="chart"></canvas>
 <button onclick="downloadPDF()">Télécharger le PDF</button>
-<label><input type="checkbox" onchange="location.reload()"> Recommencer</label>
+<div class="side-actions">
+<button onclick="startTest('G')">Recommencer G</button>
+<button onclick="startTest('D')">Recommencer D</button>
+</div>
+<button onclick="showMenu()">Modifier la durée / Retour au menu</button>
+<section id="resultHistory" aria-label="Historique CPS par côté"></section>
 </div>
 
 <script>
@@ -124,19 +141,102 @@ let cpsTimeline = [];
 let started = false;
 let interval;
 let lastCircle;
+let side;
+let resultChart;
+let attemptId;
+const athleteId = new URLSearchParams(window.location.search).get("athleteId");
 
-function startTest() {
+function sideLabel(value) {
+    return value === "G" ? "Gauche (G)" : "Droite (D)";
+}
+
+function historyKey() {
+    const identity = athleteId || JSON.stringify([nom.value, prenom.value, age.value]);
+    return "sport-mind-lab:cps:" + identity;
+}
+
+function readHistory(key = historyKey()) {
+    try {
+        const value = JSON.parse(localStorage.getItem(key) || "[]");
+        return Array.isArray(value) ? value.filter(item => item && Number.isFinite(item.clicks) && Number.isFinite(Number(item.cps))) : [];
+    } catch { return []; }
+}
+
+function renderHistory() {
+    const history = readHistory();
+    for (const container of [menuHistory, resultHistory]) {
+        container.replaceChildren();
+        const heading = document.createElement("h2");
+        heading.textContent = "Historique de l’athlète";
+        container.appendChild(heading);
+        const columns = document.createElement("div");
+        columns.className = "history-columns";
+        for (const value of ["G", "D"]) {
+            const section = document.createElement("section");
+            const title = document.createElement("h3");
+            title.textContent = sideLabel(value);
+            section.appendChild(title);
+            const entries = history.filter(item => item.side === value).reverse();
+            if (!entries.length) {
+                const empty = document.createElement("p");
+                empty.textContent = "Aucun essai enregistré.";
+                section.appendChild(empty);
+            } else {
+                const scroll = document.createElement("div");
+                scroll.className = "history-scroll";
+                const table = document.createElement("table");
+                table.innerHTML = "<thead><tr><th>Date</th><th>Durée</th><th>Clics</th><th>CPS</th></tr></thead>";
+                const tbody = document.createElement("tbody");
+                for (const entry of entries) {
+                    const row = tbody.insertRow();
+                    for (const text of [new Date(entry.date).toLocaleString(), entry.duration + " s", entry.clicks, Number(entry.cps).toFixed(2)]) {
+                        row.insertCell().textContent = text;
+                    }
+                }
+                table.appendChild(tbody);
+                scroll.appendChild(table);
+                section.appendChild(scroll);
+            }
+            columns.appendChild(section);
+        }
+        container.appendChild(columns);
+        const legacyCount = readHistory(`${nom.value}_${prenom.value}_${age.value}`).filter(item => !item.side).length;
+        if (legacyCount) {
+            const note = document.createElement("p");
+            note.textContent = `${legacyCount} ancien(s) essai(s) conservé(s) sans côté renseigné ; exclus des comparaisons gauche/droite.`;
+            container.appendChild(note);
+        }
+    }
+}
+
+function showMenu() {
+    results.style.display = "none";
+    page1.style.display = "block";
+    renderHistory();
+}
+
+function startTest(selectedSide) {
+    if (selectedSide !== "G" && selectedSide !== "D") return;
     if (temps.validity.badInput) { temps.reportValidity(); return; }
     if (temps.value === "") temps.value = "30";
     if (!temps.reportValidity()) return;
     duration = Number(temps.value);
     if (!Number.isFinite(duration) || duration <= 0) return;
+    clearInterval(interval);
+    lastCircle?.remove();
+    lastCircle = null;
+    resultChart?.destroy();
+    resultChart = null;
+    side = selectedSide;
+    attemptId = crypto.randomUUID();
     clicks = 0;
     timeline = [];
     cpsTimeline = [];
     started = false;
     timer.textContent = duration + " s";
+    testSide.textContent = "Côté " + sideLabel(side) + " · Espace pour commencer";
     page1.style.display = "none";
+    results.style.display = "none";
     testScreen.style.display = "block";
     testScreen.requestFullscreen?.().catch(()=>{});
 }
@@ -153,6 +253,7 @@ document.addEventListener("keydown", e => {
 
     if (!started) {
         started = true;
+        testSide.textContent = "Côté " + sideLabel(side);
         startTime = Date.now();
         interval = setInterval(updateTimer, 50);
     }
@@ -182,6 +283,9 @@ function updateTimer() {
 }
 
 function finish() {
+    if (testScreen.style.display !== "block" || !started) return;
+    clearInterval(interval);
+    started = false;
     if (document.fullscreenElement) document.exitFullscreen?.().catch(()=>{});
     testScreen.style.display = "none";
     results.style.display = "block";
@@ -192,39 +296,43 @@ function finish() {
     let last = timeline.filter(p=>p.t>=2*tier).length;
     let fatigue = last-first;
 
-    let clientKey = `${nom.value}_${prenom.value}_${age.value}`;
-    let history = JSON.parse(localStorage.getItem(clientKey) || "[]");
+    const history = readHistory();
+    const date = new Date().toISOString();
 
-    const comparableHistory = history.filter(item => (item.duration ?? 30) === duration);
-    let comparisonText = "<p><strong>Aucun test antérieur de même durée pour ce client.</strong></p>";
+    const comparableHistory = history.filter(item => item.side === side && item.duration === duration);
+    let comparisonText = "<p><strong>Aucun test antérieur du même côté et de même durée pour cet athlète.</strong></p>";
     if (comparableHistory.length > 0) {
         let prev = comparableHistory[comparableHistory.length-1];
         comparisonText = `
         <div class="comparison">
-        <strong>Comparaison avec le test précédent de ${duration} s :</strong>
+        <strong>Comparaison ${sideLabel(side)} avec le test précédent de ${duration} s :</strong>
         <p>Δ Clics : ${clicks - prev.clicks}</p>
         <p>Δ CPS : ${(cps - prev.cps).toFixed(2)}</p>
         <p>Δ Fatigue : ${fatigue - prev.fatigue}</p>
         </div>`;
     }
 
-    history.push({duration, clicks, cps, fatigue});
-    localStorage.setItem(clientKey, JSON.stringify(history));
+    history.push({id: attemptId, date, side, duration, clicks, cps: Number(cps), fatigue});
+    localStorage.setItem(historyKey(), JSON.stringify(history));
+    renderHistory();
 
     summary.innerHTML = `
     <p>Date : ${new Date().toLocaleString()}</p>
     <p>Nom : ${nom.value}</p>
     <p>Prénom : ${prenom.value}</p>
     <p>Âge : ${age.value}</p>
+    <p><strong>Côté : ${sideLabel(side)}</strong></p>
     <p>Temps : ${duration}s</p>
     <p>Clics : ${clicks}</p>
     <p>CPS moyen : ${cps}</p>
     <p>Indice de fatigue : ${fatigue}</p>`;
-    window.SportMindLabResult?.(clicks, `Clics en ${duration} s`);
+    window.SportMindLabResult?.(clicks, `CPS ${sideLabel(side)} en ${duration} s`, {
+        testId: "cps", athleteId, side, duration, attemptId,
+    });
 
     comparison.innerHTML = comparisonText;
 
-    new Chart(chart, {
+    if (window.Chart) resultChart = new Chart(chart, {
         type: "line",
         data: {
             labels: timeline.map(p=>p.t.toFixed(1)),
@@ -260,7 +368,7 @@ function downloadPDF() {
     pdf.addImage(img, "PNG", 10, y, 180, 90);
 
     const safeName = `${nom.value}_${prenom.value}`.replace(/[^a-z0-9_-]+/gi, "_");
-    pdf.save(`Resultat_vitesse_motrice_${safeName || "joueur"}.pdf`);
+    pdf.save(`Resultat_vitesse_motrice_${side}_${duration}s_${safeName || "joueur"}.pdf`);
 }
 </script>
 
@@ -276,6 +384,7 @@ function hydrateAthleteFromSession(){
   set("age", "0");
 }
 hydrateAthleteFromSession();
+renderHistory();
 </script>
 <script src="./test-shell.js"></script>
 </body>

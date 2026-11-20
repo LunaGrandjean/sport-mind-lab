@@ -50,6 +50,8 @@ export interface Result {
   axis: Axis;
   score: number;
   rawScore?: number;
+  side?: "G" | "D";
+  duration?: number;
   mode: string;
   niveau: string;
   commentaire?: string;

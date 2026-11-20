@@ -21,7 +21,7 @@ export const HTML_TESTS: HtmlTool[] = [
     htmlPath: "/tests/test_CPS.html",
     description: "Vitesse de frappe, endurance motrice et évolution du rythme.",
     objective: "Mesurer la capacité à produire des réponses motrices rapides et répétées.",
-    instructions: "Choisir librement la durée (30 secondes par défaut). Le sportif appuie sur Espace le plus vite possible ; le chronomètre démarre au premier appui.",
+    instructions: "Choisir la durée (30 secondes par défaut), puis Démarrer Gauche ou Démarrer Droite. Le chronomètre démarre au premier appui sur Espace. Chaque essai est enregistré séparément par côté.",
   },
   {
     id: "captation-visuelle",
@@ -172,6 +172,7 @@ export function findTool(id: string) {
 
 export function toolUrlWithAthlete(path: string, athlete: Athlete) {
   const params = new URLSearchParams({
+    athleteId: athlete.id,
     nom: athlete.nom || "Session",
     prenom: athlete.prenom || "Sportif",
     age: athlete.age ? String(athlete.age) : "",

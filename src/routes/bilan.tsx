@@ -919,11 +919,13 @@ function Bilan() {
                         {session.date}
                       </td>
                       <td className="px-4 py-3">
-                        {session.results.map((result) => AXIS_SHORT[result.axis]).join(", ")}
+                        {session.results.map((result) =>
+                          `${AXIS_SHORT[result.axis]}${result.side ? ` · ${result.side === "G" ? "Gauche (G)" : "Droite (D)"}` : ""}`,
+                        ).join(", ")}
                       </td>
                       <td className="px-4 py-3 tabular-nums">
                         {session.results
-                          .map((result) => `${AXIS_SHORT[result.axis]} ${result.score}/20`)
+                          .map((result) => `${AXIS_SHORT[result.axis]}${result.side ? ` ${result.side}` : ""} ${result.score}/20${result.duration ? ` (${result.duration} s · ${result.rawScore} clics)` : ""}`)
                           .join(" - ")}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
