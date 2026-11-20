@@ -67,6 +67,15 @@ export const HTML_TESTS: HtmlTool[] = [
 
 export const PRACTICE_APPS: HtmlTool[] = [
   {
+    id: "anticipation-trajectoires",
+    title: "Anticipation des trajectoires",
+    type: "application",
+    htmlPath: "/tests/anticipation_trajectoires.html",
+    description: "Trois modes : première au centre, timing des passages et anticipation des balles gagnantes au tennis.",
+    objective: "Travailler la lecture des trajectoires, l’anticipation temporelle et l’inhibition face aux évitements.",
+    instructions: "Choisir le mode, le nombre de boules et le niveau. Espace démarre et sert à répondre dans le mode Passage au centre. Corrections détaillées et ralentis après chaque manche. M ou Échap : réglages ; F : plein écran.",
+  },
+  {
     id: "emotions-peripheriques",
     title: "Vision périphérique · Émotions",
     type: "application",

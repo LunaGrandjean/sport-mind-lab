@@ -22,6 +22,7 @@ import type { HtmlTool } from "@/lib/test-definitions";
 type IconTone = "blue" | "cyan" | "green" | "amber" | "red" | "slate" | "violet";
 
 const toolImages: Record<string, string> = {
+  "anticipation-trajectoires": "/anticipation-trajectoires.svg",
   "attention": "/attention.png",
   "captation-visuelle": "/captation-inof-visuelle.png",
   "cps": "/cps.png",

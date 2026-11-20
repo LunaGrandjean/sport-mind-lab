@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Anticipation des trajectoires</title>
+    <link rel="stylesheet" href="./test-theme.css" />
+    <link rel="stylesheet" href="./anticipation-trajectoires.css" />
+  </head>
+  <body class="trajectory-app">
+    <main id="settingsPage" class="settings-page">
+      <section class="settings-panel" aria-labelledby="appTitle">
+        <p class="eyebrow">Lecture du mouvement</p>
+        <h1 id="appTitle">Anticipation des trajectoires</h1>
+        <p class="intro">
+          Observer, anticiper puis vérifier. Trois exercices pour lire les trajectoires, ajuster son
+          timing et choisir quand agir.
+        </p>
+        <form id="settingsForm">
+          <fieldset class="mode-picker">
+            <legend>Choisir un mode</legend>
+            <label class="mode-choice"
+              ><input type="radio" name="mode" value="1" checked /><span
+                ><strong>1 · Première au centre</strong
+                ><small
+                  >Les boules disparaissent ensemble. Retrouvez celle qui arriverait en
+                  premier.</small
+                ></span
+              ></label
+            >
+            <label class="mode-choice"
+              ><input type="radio" name="mode" value="2" /><span
+                ><strong>2 · Passage au centre</strong
+                ><small
+                  >Appuyez sur Espace au bon moment, avec ou sans trajectoires d’évitement.</small
+                ></span
+              ></label
+            >
+            <label class="mode-choice"
+              ><input type="radio" name="mode" value="3" /><span
+                ><strong>3 · Balles gagnantes</strong
+                ><small
+                  >Anticipez l’impact des balles et le déplacement de la joueuse de tennis.</small
+                ></span
+              ></label
+            >
+          </fieldset>
+          <div class="settings-grid">
+            <div>
+              <label for="ballCount">Nombre de boules</label
+              ><input
+                id="ballCount"
+                type="number"
+                min="2"
+                max="20"
+                step="1"
+                value="4"
+                required
+              /><small id="countHint">De 2 à 20 boules, réparties sur les bords.</small>
+            </div>
+            <div>
+              <label for="level">Niveau de départ</label
+              ><input id="level" type="number" min="1" step="1" value="1" required /><small
+                >Progression sans niveau maximal.</small
+              >
+            </div>
+            <div>
+              <label for="speed">Vitesse de base <output id="speedValue">100 %</output></label
+              ><input id="speed" type="range" min="25" max="300" step="25" value="100" /><small
+                >Le niveau augmente aussi la vitesse.</small
+              >
+            </div>
+            <div id="spacingField" hidden>
+              <label for="spacing">Espacement des départs</label
+              ><select id="spacing">
+                <option value="0.8">Espacés</option>
+                <option value="0.5" selected>Moyens</option>
+                <option value="0.25">Rapprochés</option></select
+              ><small>Les boules apparaissent les unes après les autres.</small>
+            </div>
+            <div id="directionField" hidden>
+              <label for="direction">Sens de déplacement</label
+              ><select id="direction"></select>
+            </div>
+            <div id="courtField" hidden>
+              <label for="courtEdge">Bord du fond de court</label
+              ><select id="courtEdge">
+                <option value="bottom">Bas de l’écran</option>
+                <option value="top">Haut de l’écran</option>
+                <option value="left">Gauche de l’écran</option>
+                <option value="right">Droite de l’écran</option>
+              </select>
+            </div>
+          </div>
+          <label id="avoidField" class="checkbox-field" hidden
+            ><input id="avoid" type="checkbox" /><span
+              >Toutes les boules ne passent pas forcément par le centre.<small
+                >Certaines l’évitent tôt ou au dernier moment : ne pas répondre à ces boules.</small
+              ></span
+            ></label
+          >
+          <div id="modeInstructions" class="instructions"></div>
+          <div class="actions">
+            <button type="submit" id="startButton">Préparer la manche</button
+            ><button type="button" id="menuFullscreen" class="secondary">Plein écran</button>
+          </div>
+          <p class="shortcut-note">
+            Pendant l’exercice : <kbd>Espace</kbd> pour démarrer ou répondre · <kbd>P</kbd> pause ·
+            <kbd>M</kbd> ou <kbd>Échap</kbd> réglages · <kbd>F</kbd> plein écran.
+          </p>
+        </form>
+      </section>
+    </main>
+
+    <section id="gamePage" class="game-page" aria-label="Aire d’exercice" hidden>
+      <header class="game-header">
+        <div class="game-heading">
+          <strong id="phaseLabel">Prêt</strong><span id="trialLabel"></span>
+        </div>
+        <div class="toolbar">
+          <button id="pauseButton" class="secondary" type="button" hidden>Pause</button
+          ><button id="fullscreenButton" class="secondary" type="button">Plein écran</button
+          ><button id="menuButton" class="secondary" type="button">Réglages (M)</button>
+        </div>
+      </header>
+      <div id="stage" class="stage">
+        <canvas id="board" role="img" aria-label="Boules en mouvement et zone centrale"></canvas>
+        <p id="pauseOverlay" class="pause-overlay" hidden>En pause · P pour reprendre</p>
+      </div>
+      <footer class="game-footer">
+        <p id="phaseHint" role="status"></p>
+        <div id="readyControls">
+          <button id="launchButton" type="button">Démarrer · Espace</button>
+        </div>
+        <div
+          id="choiceControls"
+          class="choice-controls"
+          aria-label="Choisir la boule qui arriverait en premier"
+          hidden
+        ></div>
+        <div id="timingControls" hidden>
+          <button id="timingButton" type="button">Passage au centre · Espace</button
+          ><span id="pressCount">0 appui</span>
+        </div>
+        <form id="answerForm" class="count-answer" hidden>
+          <label for="winnerCount">Combien de balles gagnantes ?</label
+          ><input id="winnerCount" type="number" min="0" step="1" required /><button type="submit">
+            Valider
+          </button>
+        </form>
+        <div id="replayControls" class="replay-controls" hidden>
+          <label for="replaySpeed">Ralenti</label
+          ><select id="replaySpeed">
+            <option value="0.25" selected>× 0,25</option>
+            <option value="0.5">× 0,5</option>
+            <option value="1">Vitesse réelle</option></select
+          ><label for="replaySeek" class="sr-only">Position dans la relecture</label
+          ><input id="replaySeek" type="range" min="0" max="1000" step="1" value="0" /><output
+            id="replayClock"
+            >0,0 s</output
+          ><button id="backCorrection" class="secondary" type="button">
+            Retour à la correction
+          </button>
+        </div>
+      </footer>
+    </section>
+
+    <main id="correctionPage" class="correction-page" hidden>
+      <header class="correction-heading">
+        <div>
+          <p class="eyebrow">Observer et comprendre</p>
+          <h1>Correction</h1>
+          <p id="correctionSubtitle"></p>
+        </div>
+        <button id="correctionMenu" class="secondary" type="button">Réglages (M)</button>
+      </header>
+      <div id="resultSummary" class="result-summary" role="status"></div>
+      <div class="actions">
+        <button id="slowReplay" type="button">Revoir au ralenti · Entrée</button
+        ><button id="sameLevel" class="secondary" type="button">
+          Nouvelle manche · même niveau</button
+        ><button id="nextLevel" type="button">Niveau suivant</button>
+      </div>
+      <section id="correctionDetails" aria-label="Détail de la correction"></section>
+    </main>
+    <script src="./test-shell.js"></script>
+    <script type="module" src="./anticipation-trajectoires.js"></script>
+  </body>
+</html>
