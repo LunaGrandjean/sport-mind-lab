@@ -154,11 +154,18 @@ export function cupPositions(round, time) {
   });
 }
 
-export function parseAnswer(text, cups, balls) {
-  const value = text.trim();
-  if (!/^\d+$/.test(value) || value.length !== balls * 2) {
+export function formatAnswer(text, caret = text.length) {
+  const digits = text.replace(/\D/g, "");
+  const beforeCaret = text.slice(0, caret).replace(/\D/g, "").length;
+  const value = digits.match(/.{1,2}/g)?.join(" ") || "";
+  return { value, caret: Math.min(value.length, beforeCaret + Math.floor(beforeCaret / 2)) };
+}
+
+export function parseAnswer(text, cups) {
+  const value = text.replace(/\s/g, "");
+  if (!/^\d+$/.test(value) || value.length % 2 !== 0) {
     return {
-      error: `Écrire ${balls} numéro${balls > 1 ? "s" : ""} à deux chiffres, sans espace (ex. 0103).`,
+      error: "Complétez chaque numéro avec deux chiffres (01 à 20).",
     };
   }
   const numbers = value.match(/.{2}/g).map(Number);

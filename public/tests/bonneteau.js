@@ -1,4 +1,11 @@
-import { calibration, makeRound, cupLabel, parseAnswer, gradeAnswer } from "./bonneteau-core.js";
+import {
+  calibration,
+  makeRound,
+  cupLabel,
+  formatAnswer,
+  parseAnswer,
+  gradeAnswer,
+} from "./bonneteau-core.js";
 import { drawBoard } from "./bonneteau-render.js";
 
 const ids = [
@@ -109,7 +116,7 @@ function setPhase(phase) {
       replay: "Relecture",
     }[phase] || "";
   if (app.round)
-    ui.roundInfo.textContent = `Niveau ${app.round.level} · ${app.round.balls} balle${app.round.balls > 1 ? "s" : ""} · ${app.round.cups} gobelets · ${app.round.duration} s de mélange`;
+    ui.roundInfo.textContent = `Niveau ${app.round.level} · ${app.round.cups} gobelets · ${app.round.duration} s de mélange`;
 }
 
 async function enterFullscreen() {
@@ -132,7 +139,7 @@ async function toggleFullscreen() {
   }
 }
 
-export async function prepare(next = false) {
+export async function prepare(next = false, autoStart = false) {
   if (app.starting) return;
   if (next) ui.level.value = String(Number(ui.level.value) + 1);
   settingsHint();
@@ -140,7 +147,7 @@ export async function prepare(next = false) {
   app.starting = true;
   cancelFrame();
   try {
-    await enterFullscreen();
+    if (!autoStart) await enterFullscreen();
     app.elapsed = 0;
     app.paused = false;
     app.numbers = [];
@@ -161,13 +168,11 @@ export async function prepare(next = false) {
     ui.answer.value = "";
     ui.answerError.textContent = "";
     ui.answer.removeAttribute("aria-invalid");
-    ui.answer.maxLength = app.round.balls * 2;
-    ui.answer.placeholder = Array.from({ length: app.round.balls }, (_, i) => cupLabel(i + 1)).join(
-      "",
-    );
-    ui.answerHint.textContent = `${app.round.balls} numéro${app.round.balls > 1 ? "s" : ""} à deux chiffres, sans espace. L’ordre ne compte pas.`;
+    ui.answerHint.textContent =
+      "Deux chiffres par numéro (01 à 20). Les espaces s’ajoutent automatiquement. L’ordre ne compte pas.";
     drawCurrent();
-    ui.launchButton.focus({ preventScroll: true });
+    if (autoStart) launch();
+    else ui.launchButton.focus({ preventScroll: true });
   } finally {
     app.starting = false;
   }
@@ -222,7 +227,7 @@ function tick(now) {
   } else if (app.elapsed >= total()) {
     setPhase("answer");
     ui.phaseHint.textContent =
-      "Le mélange est terminé. Indiquez les gobelets contenant une balle, avec deux chiffres par numéro et sans espace.";
+      "Le mélange est terminé. Indiquez les gobelets contenant une balle. Les espaces s’ajoutent automatiquement.";
     drawCurrent();
     ui.answer.focus({ preventScroll: true });
     return;
@@ -342,8 +347,8 @@ for (const button of [ui.menuFullscreen, ui.fullscreenButton])
   button.addEventListener("click", toggleFullscreen);
 ui.answerForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  if (app.phase !== "answer") return;
-  const parsed = parseAnswer(ui.answer.value, app.round.cups, app.round.balls);
+  if (app.phase !== "answer" || app.starting) return;
+  const parsed = parseAnswer(ui.answer.value, app.round.cups);
   if (parsed.error) {
     ui.answerError.textContent = parsed.error;
     ui.answer.setAttribute("aria-invalid", "true");
@@ -352,11 +357,33 @@ ui.answerForm.addEventListener("submit", (event) => {
   }
   app.numbers = parsed.numbers;
   app.grade = gradeAnswer(app.round, app.numbers);
-  correction();
+  if (app.grade.correct) prepare(true, true);
+  else correction();
 });
 ui.answer.addEventListener("input", () => {
+  const formatted = formatAnswer(
+    ui.answer.value,
+    ui.answer.selectionStart ?? ui.answer.value.length,
+  );
+  if (ui.answer.value !== formatted.value) {
+    ui.answer.value = formatted.value;
+    ui.answer.setSelectionRange(formatted.caret, formatted.caret);
+  }
   ui.answerError.textContent = "";
   ui.answer.removeAttribute("aria-invalid");
+});
+ui.answer.addEventListener("beforeinput", (event) => {
+  const { selectionStart: start, selectionEnd: end, value } = ui.answer;
+  if (!event.cancelable || start === null || start !== end) return;
+  // Effacer près d’un espace supprime le chiffre voisin, sans bloquer le curseur sur le séparateur.
+  if (event.inputType === "deleteContentBackward" && value[start - 1] === " ") {
+    event.preventDefault();
+    ui.answer.setRangeText("", start - 2, start, "start");
+  } else if (event.inputType === "deleteContentForward" && value[start] === " ") {
+    event.preventDefault();
+    ui.answer.setRangeText("", start, start + 2, "start");
+  } else return;
+  ui.answer.dispatchEvent(new Event("input", { bubbles: true }));
 });
 ui.sameLevel.addEventListener("click", () => prepare());
 ui.nextLevel.addEventListener("click", () => prepare(true));

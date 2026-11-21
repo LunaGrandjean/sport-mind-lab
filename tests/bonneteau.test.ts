@@ -3,6 +3,7 @@ import {
   calibration,
   makeRound,
   cupPositions,
+  formatAnswer,
   parseAnswer,
   gradeAnswer,
 } from "../public/tests/bonneteau-core.js";
@@ -114,11 +115,12 @@ describe("Bonneteau", () => {
   });
 
   test("les numéros accolés à deux chiffres sont non ambigus et l'ordre des réponses ne compte pas", () => {
-    expect(parseAnswer("0112", 20, 2)).toEqual({ numbers: [1, 12] });
-    expect(parseAnswer("1102", 20, 2)).toEqual({ numbers: [11, 2] });
-    expect(parseAnswer("010512", 20, 3)).toEqual({ numbers: [1, 5, 12] });
-    for (const value of ["112", "0101", "0121", "0003", "01 03", "01,03", "ab03", ""])
-      expect(parseAnswer(value, 20, 2).error).toBeTruthy();
+    expect(parseAnswer("0112", 20)).toEqual({ numbers: [1, 12] });
+    expect(parseAnswer("1102", 20)).toEqual({ numbers: [11, 2] });
+    expect(parseAnswer("010512", 20)).toEqual({ numbers: [1, 5, 12] });
+    expect(parseAnswer("01 03", 20)).toEqual({ numbers: [1, 3] });
+    for (const value of ["112", "0101", "0121", "0003", "01,03", "ab03", ""])
+      expect(parseAnswer(value, 20).error).toBeTruthy();
     const round = makeRound({ balls: 3, cups: 20, level: 1 }, 1000, 600, seeded(4));
     expect(gradeAnswer(round, [...round.answers].reverse()).correct).toBe(true);
     const empty = Array.from({ length: 20 }, (_, i) => i + 1).find(
@@ -130,4 +132,38 @@ describe("Bonneteau", () => {
     expect(grade.missed).toEqual([round.answers[0]]);
     expect(grade.extra).toEqual([empty]);
   });
+
+  test("la saisie groupe les chiffres sans gabarit et conserve la position dans le texte", () => {
+    expect(formatAnswer("")).toEqual({ value: "", caret: 0 });
+    expect(formatAnswer("0")).toEqual({ value: "0", caret: 1 });
+    expect(formatAnswer("0112")).toEqual({ value: "01 12", caret: 5 });
+    expect(formatAnswer("011")).toEqual({ value: "01 1", caret: 4 });
+    expect(formatAnswer("01, 12; 20")).toEqual({ value: "01 12 20", caret: 8 });
+    expect(formatAnswer("01 12 20", 1).caret).toBe(1);
+    expect(formatAnswer("01 12 20", 3).caret).toBe(3);
+    expect(formatAnswer("01 12 20", 5).caret).toBe(6);
+    expect(formatAnswer("0102030405060708091011121314151617181920").value).toBe(
+      "01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20",
+    );
+  });
+
+  test("le nombre de réponses est évalué à la correction sans donner d'indice à la saisie", () => {
+    const round = makeRound({ balls: 2, cups: 20, level: 1 }, 1000, 600, seeded(4));
+    const missing = parseAnswer(cupLabelForTest(round.answers[0]), round.cups);
+    expect(missing.error).toBeUndefined();
+    expect(gradeAnswer(round, missing.numbers).missed).toHaveLength(1);
+    const extra = Array.from({ length: 20 }, (_, i) => i + 1).find(
+      (number) => !round.answers.includes(number),
+    )!;
+    const tooMany = parseAnswer(
+      [...round.answers, extra].map(cupLabelForTest).join(" "),
+      round.cups,
+    );
+    expect(tooMany.error).toBeUndefined();
+    expect(gradeAnswer(round, tooMany.numbers).extra).toEqual([extra]);
+  });
 });
+
+function cupLabelForTest(number: number) {
+  return String(number).padStart(2, "0");
+}
