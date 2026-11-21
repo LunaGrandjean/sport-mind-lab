@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Le bonneteau</title>
+    <link rel="stylesheet" href="./test-theme.css" />
+    <link rel="stylesheet" href="./bonneteau.css" />
+  </head>
+  <body>
+    <main id="menu" class="page-wrap">
+      <section class="panel">
+        <p class="eyebrow">Mémoire et suivi visuel</p>
+        <h1>Le bonneteau</h1>
+        <p class="intro">
+          Repérez les balles, suivez leurs gobelets pendant le mélange, puis retrouvez où elles se
+          cachent.
+        </p>
+        <form id="settingsForm">
+          <div class="fields">
+            <label
+              >Balles<input
+                id="ballCount"
+                type="number"
+                min="1"
+                max="10"
+                step="1"
+                value="1"
+                required
+              /><small>De 1 à 10 balles.</small></label
+            >
+            <label
+              >Gobelets<input
+                id="cupCount"
+                type="number"
+                min="2"
+                max="20"
+                step="1"
+                value="3"
+                required
+              /><small>De 2 à 20 gobelets, avec au moins un vide.</small></label
+            >
+            <label
+              >Niveau de départ<input
+                id="level"
+                type="number"
+                min="1"
+                step="1"
+                value="1"
+                required
+              /><small>Sans niveau maximal : les mouvements accélèrent.</small></label
+            >
+          </div>
+          <div class="instructions">
+            <p>
+              Les balles sont visibles pendant <strong>3 secondes</strong>, puis les gobelets les
+              recouvrent. Chaque balle reste sous le même gobelet pendant tout le mélange.
+            </p>
+            <p>
+              Durée du mélange : <strong>10 s aux niveaux 1–5</strong>,
+              <strong>20 s aux niveaux 6–10</strong>, puis <strong>30 s dès le niveau 11</strong>.
+            </p>
+            <p>
+              Après l’arrêt, les numéros apparaissent. Saisissez les gobelets contenant une balle,
+              dans l’ordre de votre choix,
+              <strong>avec deux chiffres par numéro et sans espace</strong> :
+              <strong>010512</strong> signifie 01, 05 et 12.
+            </p>
+          </div>
+          <p id="durationHint" class="hint" role="status"></p>
+          <div class="actions">
+            <button type="submit">Préparer la manche</button
+            ><button id="menuFullscreen" type="button" class="secondary">Plein écran</button>
+          </div>
+          <p class="hint">
+            Espace : démarrer · P : pause · M ou Échap : réglages · F : plein écran.
+          </p>
+        </form>
+      </section>
+    </main>
+
+    <section id="game" class="game" aria-label="Table de bonneteau" hidden>
+      <header class="game-header">
+        <div class="heading"><strong id="phaseTitle">Prêt</strong><span id="roundInfo"></span></div>
+        <div class="toolbar">
+          <button id="pauseButton" type="button" class="secondary" hidden>Pause</button
+          ><button id="fullscreenButton" type="button" class="secondary">Plein écran</button
+          ><button id="settingsButton" type="button" class="secondary">Réglages (M)</button>
+        </div>
+      </header>
+      <div id="stage">
+        <canvas id="board" role="img" aria-label="Table avec gobelets et balles"></canvas>
+        <div id="pauseOverlay" hidden>En pause · P pour reprendre</div>
+      </div>
+      <footer class="game-footer">
+        <p id="phaseHint" role="status"></p>
+        <button id="launchButton" type="button">Observer les balles · Espace</button>
+        <form id="answerForm" hidden>
+          <label for="answer">Numéros des gobelets</label>
+          <div class="answer-row">
+            <input
+              id="answer"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              spellcheck="false"
+              aria-describedby="answerHint answerError"
+              required
+            /><button type="submit">Valider</button>
+          </div>
+          <small id="answerHint"></small>
+          <p id="answerError" class="error-text" role="alert"></p>
+        </form>
+        <div id="replayControls" hidden>
+          <label for="replaySpeed">Ralenti</label
+          ><select id="replaySpeed">
+            <option value="0.25">× 0,25</option>
+            <option value="0.5">× 0,5</option>
+            <option value="1">Vitesse réelle</option></select
+          ><input
+            id="replaySeek"
+            type="range"
+            min="0"
+            max="1000"
+            value="0"
+            aria-label="Position dans la relecture"
+          /><output id="replayTime"></output
+          ><button id="backCorrection" type="button" class="secondary">Correction</button>
+        </div>
+      </footer>
+    </section>
+
+    <main id="correction" class="page-wrap" hidden>
+      <header class="correction-header">
+        <div>
+          <p class="eyebrow">Vérifier et comprendre</p>
+          <h1>Correction du bonneteau</h1>
+          <p id="correctionInfo"></p>
+        </div>
+        <button id="correctionSettings" class="secondary" type="button">Réglages (M)</button>
+      </header>
+      <div id="summary" class="panel" role="status"></div>
+      <div class="actions">
+        <button id="sameLevel" type="button">Recommencer · même niveau</button
+        ><button id="nextLevel" type="button" class="secondary">Niveau suivant</button
+        ><button id="replayButton" type="button" class="secondary">Revoir au ralenti</button>
+      </div>
+      <p class="hint">
+        Les gobelets sont soulevés pour montrer toutes les balles. Vert : trouvé ; rouge : gobelet
+        vide sélectionné ; orange : balle oubliée.
+      </p>
+      <canvas
+        id="correctionBoard"
+        role="img"
+        aria-label="Gobelets soulevés et réponses corrigées"
+      ></canvas>
+      <ul id="correctionList" class="correction-list"></ul>
+    </main>
+    <script src="./test-shell.js"></script>
+    <script type="module" src="./bonneteau.js"></script>
+  </body>
+</html>

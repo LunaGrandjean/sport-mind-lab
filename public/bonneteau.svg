@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="320" viewBox="0 0 480 320">
+<defs><linearGradient id="felt" x2="0" y2="1"><stop stop-color="#388774"/><stop offset="1" stop-color="#164c40"/></linearGradient><linearGradient id="cup"><stop stop-color="#16445a"/><stop offset=".35" stop-color="#78a8bc"/><stop offset="1" stop-color="#17445e"/></linearGradient></defs>
+<rect width="480" height="320" rx="24" fill="url(#felt)"/><rect x="10" y="10" width="460" height="300" rx="18" fill="none" stroke="#d8bd7f" stroke-width="3"/>
+<text x="240" y="49" fill="#fff" font-family="Arial,sans-serif" text-anchor="middle" font-size="22" font-weight="700" letter-spacing="3">LE BONNETEAU</text>
+<g fill="url(#cup)" stroke="#d4edf4" stroke-width="2"><path d="M75 123Q105 112 135 123L148 215Q105 230 62 215Z"/><ellipse cx="105" cy="123" rx="30" ry="7"/><path d="M210 87Q240 76 270 87L283 179Q240 194 197 179Z"/><ellipse cx="240" cy="87" rx="30" ry="7"/><path d="M345 123Q375 112 405 123L418 215Q375 230 332 215Z"/><ellipse cx="375" cy="123" rx="30" ry="7"/></g>
+<circle cx="240" cy="219" r="16" fill="#ffcf45" stroke="#fff2bb" stroke-width="3"/><circle cx="235" cy="214" r="5" fill="#fff3b7"/>
+<g font-family="Arial,sans-serif" font-size="20" text-anchor="middle" fill="#fff" font-weight="700"><text x="105" y="258">01</text><text x="240" y="258">02</text><text x="375" y="258">03</text></g>
+<text x="240" y="292" fill="#d4eae1" font-family="Arial,sans-serif" text-anchor="middle" font-size="12" letter-spacing="2">MÉMORISER · SUIVRE · RETROUVER</text></svg>

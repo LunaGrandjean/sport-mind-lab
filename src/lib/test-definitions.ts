@@ -67,6 +67,15 @@ export const HTML_TESTS: HtmlTool[] = [
 
 export const PRACTICE_APPS: HtmlTool[] = [
   {
+    id: "bonneteau",
+    title: "Le bonneteau",
+    type: "application",
+    htmlPath: "/tests/bonneteau.html",
+    description: "Retrouver les balles cachées sous des gobelets après leur mélange.",
+    objective: "Travailler la mémoire visuo-spatiale et le suivi de plusieurs objets cachés.",
+    instructions: "Choisir 1 à 10 balles, 2 à 20 gobelets (plus de gobelets que de balles) et le niveau. Espace révèle les balles puis lance le mélange : 10 s aux niveaux 1–5, 20 s aux niveaux 6–10, 30 s ensuite. Saisir deux chiffres par numéro, sans espace, puis consulter la correction. M ou Échap : réglages ; F : plein écran.",
+  },
+  {
     id: "anticipation-trajectoires",
     title: "Anticipation des trajectoires",
     type: "application",
