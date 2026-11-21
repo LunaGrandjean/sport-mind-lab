@@ -164,6 +164,45 @@ describe("Anticipation : passages au centre", () => {
     });
     expect(crossingSummary(trial, [perfect]).inhibited).toBe(1);
   });
+
+  test("des fausses sorties reviennent au dernier moment et se valident uniquement au passage réel", () => {
+    let feints = 0;
+    for (const direction of Object.keys(DIRECTIONS)) {
+      for (const level of [1, 500]) {
+        for (let seed = 0; seed < 20; seed++) {
+          const trial = makeCrossings(
+            { ...settings, direction, level, avoid: true },
+            1000,
+            600,
+            seeded(seed),
+          );
+          for (const ball of trial.balls.filter((item) => item.lateReturn)) {
+            feints++;
+            expect(ball.crosses).toBe(true);
+            const before = crossingPosition(trial, ball, ball.startAt + ball.duration * 0.4)!;
+            expect(distance(before, trial.center)).toBeGreaterThan(trial.targetRadius * 3);
+            const center = crossingPosition(trial, ball, ball.centerAt)!;
+            expect(distance(center, trial.center)).toBeLessThan(1e-8);
+            const press = scorePress(trial, ball.centerAt);
+            expect(press.perfect).toBe(true);
+            expect(press.ballId).toBe(ball.id);
+            const offset = ball.duration * 1e-5;
+            const immediatelyBefore = crossingPosition(trial, ball, ball.centerAt - offset)!;
+            const immediatelyAfter = crossingPosition(trial, ball, ball.centerAt + offset)!;
+            expect(distance(immediatelyBefore, immediatelyAfter)).toBeLessThan(0.1);
+          }
+          const ordinary = makeCrossings(
+            { ...settings, direction, level, avoid: false },
+            1000,
+            600,
+            seeded(seed),
+          );
+          expect(ordinary.balls.some((ball) => ball.lateReturn)).toBe(false);
+        }
+      }
+    }
+    expect(feints).toBeGreaterThan(100);
+  });
 });
 
 describe("Anticipation : tennis", () => {

@@ -214,6 +214,7 @@ export function makeCrossings(settings, width, height, random = Math.random) {
       duration: calibration.duration,
       centerAt: index * calibration.duration * settings.spacing + calibration.duration / 2,
       crosses: !avoided.has(index),
+      lateReturn: settings.avoid && !avoided.has(index) && random() < 0.5,
       lateAvoid: random() < 0.5,
       bend:
         settings.direction === "free"
@@ -237,6 +238,13 @@ export function crossingPosition(trial, ball, time) {
   const fraction = clamp(raw, 0, 1);
   const progress = ball.bend ? fraction + 0.065 * Math.sin(2 * Math.PI * fraction) : fraction;
   const curve = ball.bend * Math.sin(Math.PI * progress) * Math.sin(2 * Math.PI * progress);
+  // Une fausse sortie reste déviée jusqu'à l'approche du centre, puis revient sans saut.
+  const feint = ball.lateReturn
+    ? Math.sign(ball.bend || ball.avoidance) *
+      Math.abs(ball.avoidance) *
+      smooth((progress - 0.14) / 0.12) *
+      smooth((0.5 - progress) / 0.065)
+    : 0;
   const evade = ball.crosses
     ? 0
     : ball.avoidance *
@@ -244,8 +252,8 @@ export function crossingPosition(trial, ball, time) {
         ? smooth((progress - 0.34) / 0.12) * smooth((0.66 - progress) / 0.12)
         : Math.sin(Math.PI * progress) ** 2);
   return {
-    x: lerp(ball.start.x, ball.end.x, progress) + ball.perpendicular.x * (curve + evade),
-    y: lerp(ball.start.y, ball.end.y, progress) + ball.perpendicular.y * (curve + evade),
+    x: lerp(ball.start.x, ball.end.x, progress) + ball.perpendicular.x * (curve + evade + feint),
+    y: lerp(ball.start.y, ball.end.y, progress) + ball.perpendicular.y * (curve + evade + feint),
   };
 }
 

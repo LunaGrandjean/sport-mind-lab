@@ -73,7 +73,7 @@ export const PRACTICE_APPS: HtmlTool[] = [
     htmlPath: "/tests/anticipation_trajectoires.html",
     description: "Trois modes : première au centre, timing des passages et anticipation des balles gagnantes au tennis.",
     objective: "Travailler la lecture des trajectoires, l’anticipation temporelle et l’inhibition face aux évitements.",
-    instructions: "Choisir le mode, le nombre de boules et le niveau. Espace démarre et sert à répondre dans le mode Passage au centre. Corrections détaillées et ralentis après chaque manche. M ou Échap : réglages ; F : plein écran.",
+    instructions: "Choisir le mode, le nombre de boules et le niveau. Mode 1 : niveau suivant après réussite, option mémoire de la manche précédente et choix « Même niveau ». Mode 2 : Espace au passage réel, avec évitements et retours tardifs possibles. Corrections et ralentis ; M ou Échap : réglages ; F : plein écran.",
   },
   {
     id: "emotions-peripheriques",

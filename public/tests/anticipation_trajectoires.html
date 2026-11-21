@@ -99,6 +99,24 @@
               ></span
             ></label
           >
+          <div id="convergenceOptions">
+            <label class="checkbox-field"
+              ><input id="memory" type="checkbox" /><span
+                >Mémoire : répondre pour la manche précédente<small
+                  >Première manche : mémoriser seulement. Ensuite : retenir la nouvelle gagnante et
+                  répondre pour la précédente.</small
+                ></span
+              ></label
+            >
+            <label class="checkbox-field"
+              ><input id="stayLevel" type="checkbox" /><span
+                >Même niveau<small
+                  >Conserver le niveau après une bonne réponse. Cette option reste modifiable
+                  pendant l’exercice.</small
+                ></span
+              ></label
+            >
+          </div>
           <div id="modeInstructions" class="instructions"></div>
           <div class="actions">
             <button type="submit" id="startButton">Préparer la manche</button
@@ -118,6 +136,9 @@
           <strong id="phaseLabel">Prêt</strong><span id="trialLabel"></span>
         </div>
         <div class="toolbar">
+          <button id="holdLevelButton" class="secondary" type="button" aria-pressed="false" hidden>
+            Même niveau
+          </button>
           <button id="pauseButton" class="secondary" type="button" hidden>Pause</button
           ><button id="fullscreenButton" class="secondary" type="button">Plein écran</button
           ><button id="menuButton" class="secondary" type="button">Réglages (M)</button>

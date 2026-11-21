@@ -25,6 +25,10 @@ const ids = [
   "courtField",
   "avoid",
   "avoidField",
+  "convergenceOptions",
+  "memory",
+  "stayLevel",
+  "holdLevelButton",
   "modeInstructions",
   "startButton",
   "menuFullscreen",
@@ -86,6 +90,8 @@ export const app = {
   stopAt: 0,
   manualFullscreenExit: false,
   wasFullscreen: false,
+  memoryPrevious: null,
+  memoryRound: 0,
 };
 
 for (const [value, name] of Object.entries(DIRECTIONS)) ui.direction.add(new Option(name, value));
@@ -102,9 +108,12 @@ function updateSettings(mode = app.menuMode) {
   ui.directionField.hidden = mode !== 2;
   ui.courtField.hidden = mode !== 3;
   ui.avoidField.hidden = mode !== 2;
+  ui.convergenceOptions.hidden = mode !== 1;
   ui.modeInstructions.innerHTML = {
-    1: "<p>Repérez les départs. Toutes les boules disparaissent quand la plus rapide a parcouru <strong>4/5 de son trajet</strong>. Les positions de départ reviennent : choisissez celle qui aurait atteint le cercle rouge en premier. Le niveau augmente la vitesse et réduit les écarts.</p>",
-    2: "<p>Au niveau 1 et à 100 %, une traversée dure <strong>4 secondes</strong>, avec un passage au centre à 2 secondes. Appuyez une fois sur <strong>Espace</strong> quand le centre de la boule est dans le cercle rouge. Si une boule l’évite, ne répondez pas. Un appui maintenu ne compte qu’une fois.</p>",
+    1: ui.memory.checked
+      ? "<p><strong>Mémoire décalée :</strong> la première manche sert uniquement à mémoriser la boule gagnante. Dès la deuxième, retenez la nouvelle gagnante puis répondez avec le <strong>numéro de la gagnante de la manche précédente</strong>. Une bonne réponse prépare directement le niveau suivant, sauf si « Même niveau » est activé. Une erreur ouvre la correction de la manche à laquelle vous répondiez.</p>"
+      : "<p>Repérez les départs. Toutes les boules disparaissent quand la plus rapide a parcouru <strong>4/5 de son trajet</strong>. Choisissez celle qui aurait atteint le cercle rouge en premier. Une bonne réponse prépare directement le <strong>niveau suivant</strong>, sauf si « Même niveau » est activé. La correction apparaît en cas d’erreur.</p>",
+    2: "<p>Au niveau 1 et à 100 %, une traversée dure <strong>4 secondes</strong>, avec un passage au centre à 2 secondes. Appuyez une fois sur <strong>Espace</strong> quand le centre de la boule est dans le cercle rouge. Avec l’inhibition, certaines boules l’évitent ; d’autres semblent l’éviter puis <strong>reviennent au centre au dernier moment</strong>. Attendez le passage réel. Un appui maintenu ne compte qu’une fois.</p>",
     3: "<p>Les balles disparaissent <strong>à mi-parcours</strong>. Anticipez leur impact et la position future de la joueuse. Comptez uniquement celles qui atteindraient le terrain <strong>sans rencontrer la joueuse</strong>. Les zones claires, au-delà des lignes latérales, sont hors terrain.</p>",
   }[mode];
 }
@@ -123,6 +132,8 @@ function readSettings() {
     direction: ui.direction.value,
     edge: ui.courtEdge.value,
     avoid: ui.avoid.checked,
+    memory: app.menuMode === 1 && ui.memory.checked,
+    stayLevel: ui.stayLevel.checked,
   };
 }
 
@@ -145,6 +156,7 @@ function phase(name) {
   ui.answerForm.hidden = name !== "answer";
   ui.replayControls.hidden = name !== "replay";
   ui.pauseButton.hidden = name !== "playing" && name !== "replay";
+  ui.holdLevelButton.hidden = app.settings?.mode !== 1 || name === "replay";
   ui.pauseOverlay.hidden = !app.paused || !game;
   ui.pauseButton.textContent = app.paused ? "Reprendre" : "Pause";
   ui.phaseLabel.textContent =
@@ -156,7 +168,7 @@ function phase(name) {
       replay: "Relecture",
     }[name] || "";
   if (app.settings)
-    ui.trialLabel.textContent = `${MODE_NAMES[app.settings.mode]} · Niveau ${app.settings.level} · ${app.settings.count} boule${app.settings.count > 1 ? "s" : ""}`;
+    ui.trialLabel.textContent = `${MODE_NAMES[app.settings.mode]} · Niveau ${name === "replay" ? app.trial.level : app.settings.level} · ${app.settings.count} boule${app.settings.count > 1 ? "s" : ""}${app.settings.memory ? ` · Mémoire, manche ${name === "replay" ? app.memoryRound - 1 : app.memoryRound}` : ""}`;
 }
 
 async function enterFullscreen() {
@@ -180,7 +192,7 @@ async function toggleFullscreen() {
   } else await enterFullscreen();
 }
 
-export async function startTrial(next = false) {
+export async function startTrial(next = false, continuation = false, feedback = "") {
   if (app.starting) return;
   if (next) ui.level.value = String(Number(ui.level.value) + 1);
   const settings = readSettings();
@@ -189,7 +201,12 @@ export async function startTrial(next = false) {
   ui.startButton.disabled = true;
   cancelFrame();
   try {
-    await enterFullscreen();
+    if (!continuation) await enterFullscreen();
+    if (!continuation) {
+      app.memoryPrevious = null;
+      app.memoryRound = 0;
+    }
+    if (settings.memory) app.memoryRound++;
     app.settings = settings;
     app.paused = false;
     app.presses = [];
@@ -207,10 +224,15 @@ export async function startTrial(next = false) {
     );
     ui.phaseHint.textContent =
       settings.mode === 1
-        ? "Mémorisez les départs. Espace lance le déplacement."
+        ? settings.memory
+          ? app.memoryPrevious
+            ? `Manche ${app.memoryRound} : observez et retenez la nouvelle gagnante. Vous répondrez ensuite pour la manche ${app.memoryRound - 1}. Espace pour démarrer.`
+            : "Première manche : mémorisez la gagnante sans répondre. Espace lance le déplacement."
+          : "Repérez les départs. Espace lance le déplacement."
         : settings.mode === 2
           ? "Fixez le cercle rouge. Espace lance la manche ; les appuis suivants servent à répondre."
           : "Observez le terrain et la joueuse. Espace lance les balles.";
+    if (feedback) ui.phaseHint.textContent = `${feedback} ${ui.phaseHint.textContent}`;
     ui.pressCount.textContent = "0 appui";
     ui.choiceControls.replaceChildren();
     for (const ball of app.trial.balls) {
@@ -266,10 +288,16 @@ function tick(now) {
   app.lastStamp = now;
   if (app.phase === "playing") {
     if (app.trial.mode === 1 && app.elapsed >= app.trial.choiceAt) {
+      if (app.settings.memory && !app.memoryPrevious) {
+        advanceConvergence("Première manche terminée : gardez sa gagnante en mémoire.");
+        return;
+      }
       app.elapsed = app.trial.hideAt;
       phase("choice");
-      ui.phaseHint.textContent =
-        "Les positions de départ sont revenues. Cliquez sur la boule qui aurait atteint le centre en premier, ou sur son numéro.";
+      ui.phaseHint.textContent = app.settings.memory
+        ? `Retenez la gagnante de cette manche ${app.memoryRound}. Répondez maintenant avec le numéro gagnant de la manche ${app.memoryRound - 1} (la précédente).`
+        : "Les positions de départ sont revenues. Cliquez sur la boule qui aurait atteint le centre en premier, ou sur son numéro.";
+      if (app.settings.memory) ui.phaseLabel.textContent = "Réponse : manche précédente";
       drawCurrent();
       return;
     }
@@ -315,7 +343,9 @@ function launchMotion() {
   phase("playing");
   ui.phaseHint.textContent =
     app.trial.mode === 1
-      ? "Suivez les boules jusqu’à leur disparition."
+      ? app.settings.memory
+        ? `Mémorisez la gagnante de la manche ${app.memoryRound}.${app.memoryPrevious ? ` Vous répondrez ensuite pour la manche ${app.memoryRound - 1}.` : " Aucune réponse à donner sur cette première manche."}`
+        : "Suivez les boules jusqu’à leur disparition."
       : app.trial.mode === 2
         ? "Espace quand le centre d’une boule est dans le cercle rouge. Ne répondez pas à une boule qui l’évite."
         : "Comptez les futures balles gagnantes. La trajectoire disparaît à mi-parcours ; la joueuse continue à se déplacer.";
@@ -338,9 +368,31 @@ function recordPress() {
 }
 
 function chooseBall(id) {
-  if (app.phase !== "choice") return;
+  if (app.phase !== "choice" || app.starting) return;
+  const expected = app.settings.memory ? app.memoryPrevious : app.trial;
+  if (!expected) return;
   app.selectedId = id;
+  if (id === expected.winnerId) {
+    advanceConvergence("Bonne réponse !");
+    return;
+  }
+  // En mémoire, la correction et le ralenti portent sur la manche réellement répondue.
+  app.trial = expected;
   showCorrection();
+}
+
+function advanceConvergence(feedback) {
+  if (app.settings.memory) app.memoryPrevious = app.trial;
+  startTrial(!ui.stayLevel.checked, true, feedback);
+}
+
+function updateStayLevel() {
+  ui.holdLevelButton.setAttribute("aria-pressed", String(ui.stayLevel.checked));
+  ui.holdLevelButton.textContent = ui.stayLevel.checked ? "✓ Même niveau" : "Même niveau";
+  ui.holdLevelButton.title = ui.stayLevel.checked
+    ? "Niveau conservé. Cliquer pour réactiver la progression automatique."
+    : "Cliquer pour conserver le niveau après les bonnes réponses.";
+  if (app.settings) app.settings.stayLevel = ui.stayLevel.checked;
 }
 
 function togglePause() {
@@ -393,7 +445,13 @@ function showCorrection() {
   phase("correction");
   app.miniDraws = [];
   ui.correctionDetails.replaceChildren();
-  ui.correctionSubtitle.textContent = `${MODE_NAMES[app.trial.mode]} · Niveau ${app.settings.level} · ${app.settings.count} boule${app.settings.count > 1 ? "s" : ""}`;
+  ui.sameLevel.textContent = app.settings.memory
+    ? `Recommencer la série · niveau ${app.settings.level}`
+    : "Nouvelle manche · même niveau";
+  ui.nextLevel.textContent = app.settings.memory
+    ? `Nouvelle série · niveau ${app.settings.level + 1}`
+    : "Niveau suivant";
+  ui.correctionSubtitle.textContent = `${MODE_NAMES[app.trial.mode]} · Niveau ${app.trial.level} · ${app.settings.count} boule${app.settings.count > 1 ? "s" : ""}${app.settings.memory ? ` · Mémoire : manche ${app.memoryRound - 1} (précédente)` : ""}`;
   if (app.trial.mode === 1) {
     const correct = app.selectedId === app.trial.winnerId;
     ui.resultSummary.innerHTML = `<strong class="${correct ? "success" : "failure"}">${correct ? "Bonne anticipation !" : `La boule ${app.trial.winnerId} arrivait en premier.`}</strong><span>Votre choix : boule ${app.selectedId}. La bonne réponse est entourée en vert, votre choix en rouge s’il était différent.</span>`;
@@ -545,6 +603,13 @@ document
   .querySelectorAll('input[name="mode"]')
   .forEach((input) => input.addEventListener("change", () => updateSettings(Number(input.value))));
 ui.level.addEventListener("input", () => ui.level.setCustomValidity(""));
+ui.memory.addEventListener("change", () => updateSettings());
+ui.stayLevel.addEventListener("change", updateStayLevel);
+ui.holdLevelButton.addEventListener("click", () => {
+  ui.stayLevel.checked = !ui.stayLevel.checked;
+  updateStayLevel();
+  if (app.phase === "ready") ui.launchButton.focus({ preventScroll: true });
+});
 ui.speed.addEventListener("input", () => {
   ui.speedValue.textContent = `${ui.speed.value} %`;
 });
@@ -652,3 +717,4 @@ window.addEventListener("resize", () => {
 });
 window.addEventListener("pagehide", cancelFrame);
 updateSettings();
+updateStayLevel();

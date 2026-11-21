@@ -204,6 +204,7 @@ body.trajectory-running {
 }
 .game-header {
   display: flex;
+  min-width: 0;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
@@ -227,6 +228,10 @@ body.trajectory-running {
 .game-heading span {
   font-size: 12px;
   color: #526577;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 .toolbar {
   display: flex;
@@ -238,6 +243,11 @@ body.trajectory-running {
   font-size: 12px;
   padding: 9px 11px;
   white-space: nowrap;
+}
+.toolbar button[aria-pressed="true"] {
+  background: #e3f5ef !important;
+  color: #14633c !important;
+  border-color: #17834a !important;
 }
 .stage {
   position: relative;
@@ -487,8 +497,11 @@ body.trajectory-running {
     align-items: flex-start;
   }
   .toolbar {
-    max-width: 190px;
+    max-width: 220px;
     gap: 5px;
+    display: grid;
+    grid-template-columns: repeat(2, max-content);
+    flex-shrink: 0;
   }
   .toolbar button {
     font-size: 11px;
